@@ -1,0 +1,27 @@
+<fieldset class="scheduler-border" style="
+    background-color: #ffffff;
+    border: 2px solid #d1e7f3;
+    border-radius: 8px;
+  ">
+    <legend class="scheduler-border bg-warning" style="padding: 5px 10px; border-radius: 8px; color: #333333">
+        <b>ผลการตรวจทางห้องปฏิบัติการ :</b>
+    </legend>
+    <table class="headercenter table table-bordered table-hover" style="background-color: #ffffff">
+        <thead style="background-color: #9c009a; color: white">
+            <tr>
+                <th>#</th>
+                <th>รายการ</th>
+                <th>ผลการตรวจวิเคระาห์</th>
+                <th>ค่าปกติ</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let d of lab(row?.lab); let i = index" style="background-color: #f2f9ff; color: #333333">
+                <td class="text-center">{{ i + 1 }}.</td>
+                <td>{{ d.split("|")[0] }}</td>
+                <td class="text-center">{{ d.split("|")[1] }}</td>
+                <td>{{ d.split("|")[2] }}</td>
+            </tr>
+        </tbody>
+    </table>
+</fieldset>

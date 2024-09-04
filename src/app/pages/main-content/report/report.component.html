@@ -1,0 +1,62 @@
+<div class="content-wrapper">
+
+    <section class="content-header">
+        <h1>
+            <small>รายงาน</small>
+            {{ reportName }}
+        </h1>
+    </section>
+
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box">
+                    <div class="box-header with-border">
+                        <!-- <h3 class="box-title">Monthly Recap Report</h3> -->
+                        <div class="row">
+                            <div class="col-md-3">
+                                ปี:
+                                <select (change)="getReport(menuId, year)" class="form-control" id="year" name="year"
+                                    [(ngModel)]="year">
+                                    <option *ngFor="let y of arrYear" [value]="y"> {{ y+543 }} </option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="box-body" *ngIf="report.length>0">
+                        <div class="box-body table-responsive no-padding">
+                            <table id="repoTable" class="headercenter table table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>รหัสสถานบริการ</th>
+                                        <th>ชื่อโรงพยาบาล</th>
+                                        <th>จำนวนผู้ป่วย</th>
+                                        <th>จำนวน Visit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let r of report; let i=index;">
+                                        <td class="text-center">{{ i+1 }}</td>
+                                        <td class="text-center">{{ r.hospcode }}</td>
+                                        <td>{{ r.hospname }}</td>
+                                        <td class="text-center">{{ r.patient }}</td>
+                                        <td class="text-center">{{ r.visit }}</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="3">รวม</th>
+                                        <th>{{ report | sumDataOne:'patient' }}</th>
+                                        <th>{{ report | sumDataOne:'visit' }}</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>

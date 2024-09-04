@@ -1,0 +1,154 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "dwh": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss",
+          "skipTests": true
+        },
+        "@schematics/angular:class": {
+          "skipTests": true
+        },
+        "@schematics/angular:directive": {
+          "skipTests": true
+        },
+        "@schematics/angular:guard": {
+          "skipTests": true
+        },
+        "@schematics/angular:interceptor": {
+          "skipTests": true
+        },
+        "@schematics/angular:pipe": {
+          "skipTests": true
+        },
+        "@schematics/angular:resolver": {
+          "skipTests": true
+        },
+        "@schematics/angular:service": {
+          "skipTests": true
+        }
+      },
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "allowedCommonJsDependencies": [
+              "sweetalert2",
+              "moment",
+              "lodash"
+            ],
+            "outputPath": "dist/dwh",
+            "index": "src/index.html",
+            "main": "src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "src/favicon.ico",
+              "src/assets"
+            ],
+            "styles": [
+              "node_modules/admin-lte/bower_components/bootstrap/dist/css/bootstrap.min.css",
+              "node_modules/admin-lte/bower_components/Ionicons/css/ionicons.min.css",
+              "node_modules/admin-lte/bower_components/select2/dist/css/select2.min.css",
+              "node_modules/admin-lte/dist/css/AdminLTE.min.css",
+              "node_modules/admin-lte/dist/css/skins/_all-skins.min.css",
+              "node_modules/admin-lte/plugins/iCheck/square/blue.css",
+              "node_modules/font-awesome/css/font-awesome.min.css",
+              "node_modules/sweetalert2/dist/sweetalert2.min.css",
+              "node_modules/datatables.net-dt/css/jquery.dataTables.css",
+              "src/styles.scss"
+            ],
+            "scripts": [
+              "node_modules/admin-lte/bower_components/jquery/dist/jquery.min.js",
+              "node_modules/admin-lte/bower_components/bootstrap/dist/js/bootstrap.min.js",
+              "node_modules/admin-lte/bower_components/select2/dist/js/select2.min.js",
+              "node_modules/admin-lte/bower_components/jquery-slimscroll/jquery.slimscroll.min.js",
+              "node_modules/admin-lte/bower_components/fastclick/lib/fastclick.js",
+              "node_modules/admin-lte/dist/js/adminlte.min.js",
+              "node_modules/admin-lte/dist/js/demo.js",
+              "node_modules/admin-lte/plugins/iCheck/icheck.min.js",
+              "node_modules/sweetalert2/dist/sweetalert2.min.js",
+              "node_modules/datatables.net/js/jquery.dataTables.js"
+            ]
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "4mb",
+                  "maximumError": "6mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "browserTarget": "dwh:build:production"
+            },
+            "development": {
+              "browserTarget": "dwh:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "browserTarget": "dwh:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "tsConfig": "tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "src/favicon.ico",
+              "src/assets"
+            ],
+            "styles": [
+              "src/styles.scss"
+            ],
+            "scripts": []
+          }
+        }
+      }
+    }
+  },
+  "cli": {
+    "analytics": "7aa6819a-8fde-44ba-942d-abadaf3b82ef"
+  }
+}

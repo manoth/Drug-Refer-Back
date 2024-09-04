@@ -1,0 +1,355 @@
+<div class="content-wrapper">
+
+    <section class="content-header">
+        <h1>
+            รายชื่อผู้ป่วย Refer Back
+            ({{ (accept==='Y')?'ลงนัดหมายแล้ว':(accept==='N')?'รอลงวันที่นัดหมาย':'ที่มา Follow Up แล้ว' }})
+            <!-- <small>{{ account.hospname }}</small> -->
+        </h1>
+    </section>
+
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box">
+                    <div class="box-header with-border">
+                        <!-- <h3 class="box-title">Monthly Recap Report</h3> -->
+                        <div class="row">
+                            <div class="col-md-3">
+                                ปี:
+                                <select (change)="selectDate()" class="form-control" id="year" name="year"
+                                    [(ngModel)]="year">
+                                    <option *ngFor="let y of arrYear" [value]="y"> {{ y+543 }} </option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                เดือน:
+                                <select (change)="selectDate()" class="form-control" id="month" name="month"
+                                    [(ngModel)]="month">
+                                    <option *ngFor="let m of arrMonth; let i=index;" [value]="i"> {{ m }} </option>
+                                </select>
+                            </div>
+                            <div class="col-md-3" *ngIf="account?.hospcode==data[0]?.hospmain">
+                                แผนก:
+                                <select class="form-control" id="department" name="department" [(ngModel)]="department">
+                                    <option value="">==ทั้งหมด==</option>
+                                    <option *ngFor="let d of arrDepartment;" [value]="d.department">
+                                        {{ d.department }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="box-body" *ngIf="data.length>0">
+                        <div class="box-body table-responsive no-padding">
+                            <table id="repoTable" class="headercenter table table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>HN</th>
+                                        <th>VN</th>
+                                        <th>วันที่ส่งกลับ</th>
+                                        <th>แผนก</th>
+                                        <th>โรงพยาบาลปลายทาง</th>
+                                        <th>ชื่อ-สกุลผู้ป่วย</th>
+                                        <th>รายละเอียด</th>
+                                        <th>รับเคสนัดหมาย</th>
+                                        <th *ngIf="accept!='N'">สถานะเบิกยา</th>
+                                        <th *ngIf="accept!='N'">สถานะ F/U</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let d of data | filter: department; let i=index;">
+                                        <td class="text-center">{{ i+1 }}.</td>
+                                        <td>{{ d.hn }}</td>
+                                        <td>{{ d.vn }}</td>
+                                        <td>{{ d.vstdate | thaidate:'medium' }}</td>
+                                        <td>{{ d.department }}</td>
+                                        <td>{{ (d.dwh_name.split("(")[1]).split(")")[0] }}</td>
+                                        <td>{{ d.pname }}{{ d.fname }} {{ d.lname }}</td>
+                                        <td class="text-center">
+                                            <i (click)="onDetail(d)" class="fa fa-2x fa-file-text text-info"
+                                                role="button"></i>
+                                        </td>
+                                        <td class="text-center">
+                                            <div *ngIf="d.accept==='Y' || d.accept==='F'">
+                                                <i (click)="onAccept(d)" class="fa fa-calendar-check-o text-success"
+                                                    role="button"></i>
+                                                <br />
+                                                {{ d.accept_date | thaidate:'medium' }}
+                                            </div>
+                                            <div *ngIf="d.accept==='N'">
+                                                <i *ngIf="account.hospcode==d.dwh_hospcode" (click)="onAccept(d)"
+                                                    class="fa fa-2x fa-calendar-plus-o text-danger" role="button"></i>
+                                                <i *ngIf="account.hospcode!=d.dwh_hospcode"
+                                                    class="fa fa-2x fa-calendar-plus-o text-danger"></i>
+                                            </div>
+                                        </td>
+                                        <td *ngIf="accept!='N'" class="text-center">
+                                            <i (click)="onDrugStatus(d)" class="fa fa-2x fa-medkit"
+                                                [ngClass]="(d.drug_status==0)?'text-danger':(d.drug_status==1)?'text-yellow':(d.drug_status==2)?'text-success':'text-purple'"
+                                                role="button"></i>
+                                        </td>
+                                        <td *ngIf="accept!='N'" class="text-center">
+                                            <i (click)="onFollowUpStatus(d)" class="fa fa-2x fa-heart"
+                                                [ngClass]="(d.followup_status==0)?'text-danger':(d.followup_status==1)?'text-success':'text-info'"
+                                                role="button"></i>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <!-- <tfoot>
+                                <tr>
+                                    <th>Rendering engine</th>
+                                    <th>Browser</th>
+                                    <th>Platform(s)</th>
+                                    <th>Engine version</th>
+                                    <th>CSS grade</th>
+                                </tr>
+                            </tfoot> -->
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<div class="modal fade" id="modal-detail">
+    <div class="modal-dialog modal-lg">
+        <form enctype="multipart/form-data" class="form-horizontal box">
+            <div class="modal-header bg-green">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h3 class="modal-title">
+                    <i class="fa fa-file-text" aria-hidden="true"></i>
+                    รายละเอียดผู้ป่วย
+                </h3>
+            </div>
+            <div class="modal-body">
+                <app-sh-details0 [row]="row"></app-sh-details0>
+                <app-sh-details1 [row]="row"></app-sh-details1>
+                <app-sh-details2 [row]="row"></app-sh-details2>
+                <app-sh-details3 [row]="row"></app-sh-details3>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" (click)="printSection()">
+                    <i class="fa fa-print" aria-hidden="true"></i>
+                    พิมพ์
+                </button>
+                <!-- <button type="button" class="btn btn-default pull-left" data-dismiss="modal" aria-label="Close">
+                    ยกเลิก
+                </button> -->
+                <!-- <button type="button" class="btn btn-info pull-right" (click)="onSave(dimens03, 'edit')">
+                    <i class="fa fa-floppy-o" aria-hidden="true"></i>
+                    บันทึก
+                </button> -->
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-accept">
+    <div class="modal-dialog modal-sm">
+        <form enctype="multipart/form-data" class="form-horizontal box">
+            <div class="modal-header bg-success">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h3 class="modal-title">
+                    <i class="fa fa-calendar-plus-o" aria-hidden="true"></i>
+                    {{
+                    (account.hospcode==row?.dwh_hospcode)?(row?.accept=='Y')?'แก้ไขวันที่นัดหมาย':'ลงวันที่นัดหมาย':''
+                    }}
+                </h3>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 text-center">
+                        <p>{{ row?.pname }}{{ row?.fname }} {{ row?.lname }}</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-4 col-md-4 control-label">
+                        วันที่นัด:
+                    </label>
+                    <div class="col-sm-8 col-md-8">
+                        <div [ngClass]="{'input-group': account.hospcode==row?.dwh_hospcode}">
+                            <input class="form-control" [locale]="'th'" placeholder="วัน เดือน ปี(ค.ศ.)"
+                                angular-mydatepicker name="acceptDate" [(ngModel)]="acceptDate"
+                                [options]="myDatePickerOptions" #dp="angular-mydatepicker" readonly />
+                            <span *ngIf="account.hospcode==row?.dwh_hospcode" class="input-group-addon" role="button"
+                                (click)="dp.toggleCalendar()">
+                                <i class="fa fa-calendar"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-4 col-md-4 control-label">
+                        ลงชื่อผู้นัด:
+                    </label>
+                    <label class="col-sm-8 col-md-8">
+                        <input class="form-control" placeholder="ชื่อ-สกุล" type="text" id="accept-by" name="acceptBy"
+                            [(ngModel)]="acceptBy" [disabled]="account.hospcode!=row?.dwh_hospcode" />
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="text-center" *ngIf="account.hospcode==row?.dwh_hospcode">
+                    <button type="button" class="btn btn-info" (click)="saveAccept(row)">
+                        <i class="fa fa-floppy-o" aria-hidden="true"></i>
+                        บันทึก
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-drug-status">
+    <div class="modal-dialog modal-sm">
+        <form enctype="multipart/form-data" class="form-horizontal box">
+            <div class="modal-header bg-info">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h3 class="modal-title">
+                    <i class="fa fa-medkit" aria-hidden="true"></i>
+                    {{ (account.hospcode==row?.dwh_hospcode)?'แก้ไขสถานะการเบิกยา':'สถานะการเบิกยา' }}
+                </h3>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 text-center">
+                        <p>{{ row?.pname }}{{ row?.fname }} {{ row?.lname }}</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-4 col-md-4 control-label">
+                        <input type="radio" value="0" name="drugStatus" [(ngModel)]="drugStatus"
+                            [disabled]="account.hospcode!=row?.dwh_hospcode">
+                    </label>
+                    <label class="col-sm-8 col-md-8">
+                        <p style="padding-top: 7px; margin-bottom: 0;">
+                            <i class="fa fa-medkit text-danger"></i>
+                            ยังไม่ได้เบิกยา
+                        </p>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-4 col-md-4 control-label">
+                        <input type="radio" value="3" name="drugStatus" [(ngModel)]="drugStatus"
+                            [disabled]="account.hospcode!=row?.dwh_hospcode">
+                    </label>
+                    <label class="col-sm-8 col-md-8">
+                        <p style="padding-top: 7px; margin-bottom: 0;">
+                            <i class="fa fa-medkit text-purple"></i>
+                            ไม่เบิก(มียาในบัญชีแล้ว)
+                        </p>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-4 col-md-4 control-label">
+                        <input type="radio" value="1" name="drugStatus" [(ngModel)]="drugStatus"
+                            [disabled]="account.hospcode!=row?.dwh_hospcode">
+                    </label>
+                    <label class="col-sm-8 col-md-8">
+                        <p style="padding-top: 7px; margin-bottom: 0;">
+                            <i class="fa fa-medkit text-yellow"></i>
+                            เบิกยาแล้ว
+                        </p>
+                    </label>
+                </div>
+                <div class="form-group" *ngIf="row?.followup_status>0">
+                    <label class="col-sm-4 col-md-4 control-label">
+                        <input type="radio" value="2" name="drugStatus" [(ngModel)]="drugStatus"
+                            [disabled]="account.hospcode!=row?.dwh_hospcode">
+                    </label>
+                    <label class="col-sm-8 col-md-8">
+                        <p style="padding-top: 7px; margin-bottom: 0;">
+                            <i class="fa fa-medkit text-success"></i>
+                            จ่ายยาแล้ว
+                        </p>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="text-center" *ngIf="account.hospcode==row?.dwh_hospcode">
+                    <button type="button" class="btn btn-info" (click)="saveDrugStatus(row)">
+                        <i class="fa fa-floppy-o" aria-hidden="true"></i>
+                        บันทึก
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-follow-up-status">
+    <div class="modal-dialog modal-sm">
+        <form enctype="multipart/form-data" class="form-horizontal box">
+            <div class="modal-header bg-danger">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h3 class="modal-title">
+                    <i class="fa fa-heart" aria-hidden="true"></i>
+                    {{ (account.hospcode==row?.dwh_hospcode)?'แก้ไขสถานะ Follow Up':'สถานะ Follow Up' }}
+                </h3>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-sm-12 col-md-12 text-center">
+                        <p>{{ row?.pname }}{{ row?.fname }} {{ row?.lname }}</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-4 col-md-4 control-label">
+                        <input type="radio" value="0" name="followupStatus" [(ngModel)]="followupStatus"
+                            [disabled]="account.hospcode!=row?.dwh_hospcode">
+                    </label>
+                    <label class="col-sm-8 col-md-8">
+                        <p style="padding-top: 7px; margin-bottom: 0;">
+                            <i class="fa fa-heart text-danger"></i>
+                            ยังไม่มา Follow Up
+                        </p>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-4 col-md-4 control-label">
+                        <input type="radio" value="1" name="followupStatus" [(ngModel)]="followupStatus"
+                            [disabled]="account.hospcode!=row?.dwh_hospcode">
+                    </label>
+                    <label class="col-sm-8 col-md-8">
+                        <p style="padding-top: 7px; margin-bottom: 0;">
+                            <i class="fa fa-heart text-success"></i>
+                            มา Follow Up แล้ว
+                        </p>
+                    </label>
+                </div>
+                <!-- <div class="form-group">
+                    <label class="col-sm-4 col-md-4 control-label">
+                        <input type="radio" value="2" name="followupStatus" [(ngModel)]="followupStatus">
+                    </label>
+                    <label class="col-sm-8 col-md-8">
+                        <p style="padding-top: 7px; margin-bottom: 0;">
+                            <i class="fa fa-heart text-info"></i>
+                            กลับไป Follow Up ที่ รพ.ชัยภูมิ
+                        </p>
+                    </label>
+                </div> -->
+            </div>
+            <div class="modal-footer">
+                <div class="text-center" *ngIf="account.hospcode==row?.dwh_hospcode">
+                    <button type="button" class="btn btn-info" (click)="saveFollowUpStatus(row)">
+                        <i class="fa fa-floppy-o" aria-hidden="true"></i>
+                        บันทึก
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

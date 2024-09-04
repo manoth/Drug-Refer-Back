@@ -1,0 +1,65 @@
+<div class="login-box">
+    <div class="login-logo">
+        <div class="image">
+            <img style="width: 85px;" src="assets/img/moph-logo.gif" class="img-circle" alt="User Image">
+        </div>
+    </div>
+    <h2 class="text-center text-blue">
+        <i class="fa fa-sign-in" aria-hidden="true"></i>
+        เข้าสู่ระบบ
+    </h2>
+    <h1 class="text-center">
+        ระบบ <b>Drug Refer Back</b>
+    </h1>
+    <div class="box login-box-body" style="box-shadow: 0 0 1px #00000020, 0 1px 3px #0003;">
+        <div *ngIf="loading" class="overlay">
+            <i class="fa fa-refresh fa-spin"></i>
+        </div>
+        <p class="text-center" style="padding:'0 0 5px 0'">
+            กรุณากรอกข้อมูลเพื่อเข้าสู่ระบบ
+        </p>
+        <form (ngSubmit)="onSubmit()">
+            <div class="form-group has-feedback">
+                <input type="text" id="username" name="username" [(ngModel)]="signIn.username" class="form-control"
+                    placeholder="Email" />
+                <span class="glyphicon glyphicon-envelope form-control-feedback"></span>
+            </div>
+            <div class="form-group has-feedback">
+                <input type="password" id="password" name="password" [(ngModel)]="signIn.password" class="form-control"
+                    placeholder="Password" />
+                <span class="glyphicon glyphicon-lock form-control-feedback"></span>
+            </div>
+            <div class="checkbox icheck">
+                <label>
+                    <input type="checkbox"> Remember Me
+                </label>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block btn-flat">
+                <i class="fa fa-sign-in" aria-hidden="true"></i>
+                เข้าสู่ระบบ
+            </button>
+        </form>
+        <div class="social-auth-links text-center mb-3">
+            <div class="text-center">
+                <p>- OR -</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="login-box-msg">
+                <div class="pull-left">
+                    <a [routerLink]="['/forgot']" role="button" class="text-danger">
+                        <i class="fa fa-key" aria-hidden="true"></i>
+                        ฉันลืมรหัสผ่าน
+                    </a>
+                </div>
+                <div class="pull-right">
+                    <a [routerLink]="['/signup']" role="button" class="text-success">
+                        <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+                        ลงทะเบียนใหม่
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>

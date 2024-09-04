@@ -1,0 +1,47 @@
+<div class="login-box">
+    <div class="login-logo">
+        <div class="image">
+            <img style="width: 85px;" src="assets/img/moph-logo.gif" class="img-circle" alt="User Image">
+        </div>
+    </div>
+    <h2 class="text-center text-red">
+        <i class="fa fa-key" aria-hidden="true"></i>
+        ลืมรหัสผ่าน
+    </h2>
+    <h1 class="text-center">
+        ระบบ <b>Drug Refer Back</b>
+    </h1>
+    <div class="box login-box-body" style="box-shadow: 0 0 1px #00000020, 0 1px 3px #0003;">
+        <div *ngIf="loading" class="overlay">
+            <i class="fa fa-refresh fa-spin"></i>
+        </div>
+        <p class="text-center" style="padding:'0 0 5px 0'">
+            กรุณากรอกเลขประจำตัวประชาชนของคุณ
+        </p>
+        <form>
+            <div class="form-group has-feedback">
+                <input type="text" id="cid" name="cid" class="form-control" placeholder="เลขประจำตัวประชาชน"
+                    (keydown)="restrictInput($event)" maxlength="13" />
+                <span class="glyphicon glyphicon-credit-card form-control-feedback"></span>
+            </div>
+            <button type="submit" class="btn btn-danger btn-block btn-flat">
+                <i class="fa fa-send" aria-hidden="true"></i>
+                ส่งคำร้องขอ!
+            </button>
+        </form>
+        <div class="social-auth-links text-center mb-3">
+            <div class="text-center">
+                <p>- OR -</p>
+            </div>
+        </div>
+        <div class="social-auth-links text-center mb-3">
+            <div class="text-center">
+                <a [routerLink]="['/signin']" role="button" class="text-info">
+                    <i class="fa fa-sign-in" aria-hidden="true"></i>
+                    เข้าสู่ระบบ
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>

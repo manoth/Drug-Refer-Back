@@ -1,0 +1,31 @@
+<fieldset class="scheduler-border" style="
+    background-color: #f5fffa;
+    border: 2px solid #56c7b7;
+    border-radius: 8px;
+  ">
+  <legend class="scheduler-border bg-warning" style="padding: 5px 10px; border-radius: 8px; color: #333333">
+    <b>รายการยาโครงการ Drug Warehouse :</b>
+  </legend>
+  <table class="headercenter table table-bordered table-hover" style="background-color: #ffffff">
+    <thead style="background-color: #009688; color: white">
+      <tr>
+        <th>#</th>
+        <th>ชื่อยา</th>
+        <th>จำนวน</th>
+        <th>หน่วย</th>
+        <th>ราคาต่อหน่วย</th>
+        <th>วิธีใช้</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let d of drug(row?.drug_13); let i = index" style="background-color: #e0f2f1; color: #333333">
+        <td class="text-center">{{ i + 1 }}.</td>
+        <td>{{ d.split("|")[2] }}</td>
+        <td class="text-right">{{ d.split("|")[3] }}</td>
+        <td>{{ d.split("|")[4] }}</td>
+        <td class="text-right">{{ (+d.split("|")[5]).toFixed(2) }}</td>
+        <td>{{ d.split("|")[6] }}</td>
+      </tr>
+    </tbody>
+  </table>
+</fieldset>

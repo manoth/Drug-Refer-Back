@@ -1,0 +1,130 @@
+<div class="login-box">
+    <div class="login-logo">
+        <div class="image">
+            <img style="width: 85px;" src="assets/img/moph-logo.gif" class="img-circle" alt="User Image">
+        </div>
+    </div>
+    <h2 class="text-center text-green">
+        <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+        ลงทะเบียน
+    </h2>
+    <h1 class="text-center">
+        ระบบ <b>Drug Refer Back</b>
+    </h1>
+    <div class="box login-box-body" style="box-shadow: 0 0 1px #00000020, 0 1px 3px #0003;">
+        <div *ngIf="loading" class="overlay">
+            <i class="fa fa-refresh fa-spin"></i>
+        </div>
+        <p class="text-center" style="padding:'0 0 5px 0'">
+            กรุณากรอกข้อมูลส่วนตัว
+        </p>
+        <form #form="ngForm" (ngSubmit)="onSubmit(form)">
+            <div class="form-group has-feedback"
+                [ngClass]="{ 'has-error': (!validateIDCard.ok || cidCtrl.invalid) && (cidCtrl.touched || isSubmitted) }">
+                <input type="text" [(ngModel)]="member.cid" id="cid" name="cid" class="form-control"
+                    placeholder="เลขบัตรประชาชน" (keydown)="restrictInput($event)"
+                    (change)="isValidateThaiIDCard(member.cid)" maxlength="13" #cidCtrl="ngModel" required />
+                <span class="glyphicon glyphicon-credit-card form-control-feedback"></span>
+                <div *ngIf="(!validateIDCard.ok || cidCtrl.invalid) && (cidCtrl.touched || isSubmitted)"
+                    class="text-red invalid-feedback">
+                    <small>{{ validateIDCard.message }}</small>
+                </div>
+            </div>
+            <div class="form-group has-feedback"
+                [ngClass]="{ 'has-error': pnameCtrl.value=='' && (pnameCtrl.touched || isSubmitted) }">
+                <select [(ngModel)]="member.pname" id="pname" name="pname" class="form-control ng-untouched ng-pristine"
+                    #pnameCtrl="ngModel" required>
+                    <option selected="selected" disabled="disabled" value="">== กรุณาคำนำหน้าชื่อ ==</option>
+                    <option value="นาย">นาย</option>
+                    <option value="นาง">นาง</option>
+                    <option value="นางสาว">นางสาว</option>
+                </select>
+            </div>
+            <div class="form-group has-feedback"
+                [ngClass]="{ 'has-error': fnameCtrl.invalid && (fnameCtrl.touched || isSubmitted) }">
+                <input type="text" [(ngModel)]="member.fname" id="fname" name="fname" class="form-control"
+                    placeholder="ชื่อจริง" #fnameCtrl="ngModel" required />
+                <span class="glyphicon glyphicon-user form-control-feedback"></span>
+            </div>
+            <div class="form-group has-feedback"
+                [ngClass]="{ 'has-error': lnameCtrl.invalid && (lnameCtrl.touched || isSubmitted) }">
+                <input type="text" [(ngModel)]="member.lname" id="lname" name="lname" class="form-control"
+                    placeholder="นามสกุล" #lnameCtrl="ngModel" required />
+                <span class="glyphicon glyphicon-user form-control-feedback"></span>
+            </div>
+            <div class="form-group has-feedback">
+                <select #hospitalSelect [(ngModel)]="member.hospcode" id="hospcode" name="hospcode"
+                    class="form-control select2" style="width: 100%;" required>
+                    <option selected="selected" disabled="disabled" value="">== กรุณาเลือกสถานบริการ ==</option>
+                    <option *ngFor="let item of hospitalList;" [value]="item.hoscode">
+                        {{ item.hosname }}
+                    </option>
+                </select>
+                <div *ngIf="validateHospital" class="text-red invalid-feedback">
+                    <small>กรุณาเลือกสถานบริการ</small>
+                </div>
+            </div>
+            <hr>
+            <p class="text-center" style="padding:'0 0 5px 0'">
+                ข้อมูลสำหรับเข้าสู่ระบบ
+            </p>
+            <div class="form-group has-feedback"
+                [ngClass]="{ 'has-error': (!validateEmail.ok || emailCtrl.invalid) && (emailCtrl.touched || isSubmitted) }">
+                <input type="email" [(ngModel)]="member.email" id="email" name="email" #emailCtrl="ngModel"
+                    class="form-control" placeholder="Email" (change)="isValidateEmail(member.email)" required />
+                <span class="glyphicon glyphicon-envelope form-control-feedback"></span>
+                <div *ngIf="(!validateEmail.ok || emailCtrl.invalid) && (emailCtrl.touched || isSubmitted)"
+                    class="text-red invalid-feedback">
+                    <small>{{ validateEmail.message }}</small>
+                </div>
+            </div>
+            <div class="form-group has-feedback"
+                [ngClass]="{'has-error': (!isValidatePassword(password) || passwordCtrl.invalid) && (passwordCtrl.touched || isSubmitted)}">
+                <input type="password" [(ngModel)]="password" id="password" name="password" class="form-control"
+                    placeholder="Password" #passwordCtrl="ngModel" required />
+                <span class="glyphicon glyphicon-lock form-control-feedback"></span>
+                <div *ngIf="(!isValidatePassword(password) || passwordCtrl.invalid) && (passwordCtrl.touched || isSubmitted)"
+                    class="text-red invalid-feedback">
+                    <small>
+                        {{
+                        (passwordCtrl.invalid) ?
+                        'กรุณากรอกรหัสผ่าน' :
+                        'รหัสผ่านจำเป็นต้องมีอักษรภาษาอังกฤษ พิมพ์เล็ก พิมพ์ใหญ่ ตัวเลข และ อัขระพิเศษ
+                        ผสมกันอยู่อย่างน้อย 8 ตัวอักษรขึ้นไป'
+                        }}
+                    </small>
+                </div>
+            </div>
+            <div class="form-group has-feedback"
+                [ngClass]="{'has-error': (password!=repassword || repasswordCtrl.invalid) && (repasswordCtrl.touched || isSubmitted)}">
+                <input type="password" [(ngModel)]="repassword" id="repassword" name="repassword" class="form-control"
+                    placeholder="Repeat Password" #repasswordCtrl="ngModel" required />
+                <span class="glyphicon glyphicon-lock form-control-feedback"></span>
+                <div *ngIf="(password!=repassword || repasswordCtrl.invalid) && (repasswordCtrl.touched || isSubmitted)"
+                    class="text-red invalid-feedback">
+                    <small>
+                        {{ (repasswordCtrl.invalid) ? 'กรุณายืนยันรหัสผ่าน' : 'รหัสผ่านที่กรอกไม่ตรงกัน' }}
+                    </small>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-success btn-block btn-flat">
+                <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+                ลงทะเบียน
+            </button>
+        </form>
+        <div class="social-auth-links text-center mb-3">
+            <div class="text-center">
+                <p>- OR -</p>
+            </div>
+        </div>
+        <div class="social-auth-links text-center mb-3">
+            <div class="text-center">
+                <a [routerLink]="['/signin']" role="button" class="text-info">
+                    <i class="fa fa-sign-in" aria-hidden="true"></i>
+                    เข้าสู่ระบบ
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>

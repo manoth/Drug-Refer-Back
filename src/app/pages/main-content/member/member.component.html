@@ -1,0 +1,159 @@
+<div class="content-wrapper">
+
+    <section class="content-header">
+        <h1>
+            จัดการข้อมูลสมาชิก
+        </h1>
+    </section>
+
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box">
+                    <div class="box-header with-border">
+                        <!-- <h3 class="box-title">Monthly Recap Report</h3> -->
+                        <!-- <div class="row">
+                            <div class="col-md-3">
+                                ปี:
+                                <select (change)="getReport(menuId, year)" class="form-control" id="year" name="year"
+                                    [(ngModel)]="year">
+                                    <option *ngFor="let y of arrYear" [value]="y"> {{ y+543 }} </option>
+                                </select>
+                            </div>
+                        </div> -->
+                    </div>
+                    <div class="box-body" *ngIf="memberList.length>0">
+                        <div class="box-body table-responsive no-padding">
+                            <table id="memberTable" class="headercenter table table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Username / Email</th>
+                                        <th>ชื่อ-สกุล</th>
+                                        <th>หน่วยบริการ</th>
+                                        <th>สถานะ</th>
+                                        <th>จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let item of memberList; let i=index;">
+                                        <td class="text-center">{{ i+1 }}</td>
+                                        <td class="text-center">{{ item.username }}</td>
+                                        <td>{{ item.pname }}{{ item.fname || item.hosname }} {{ item.lname }}</td>
+                                        <td>{{ item.hosname }}</td>
+                                        <td class="text-center">
+                                            <label *ngIf="account.cid!=item.cidEnc" class="switch">
+                                                <input type="checkbox"
+                                                    (change)="onChangeMemberActive(item.cidEnc, $event)"
+                                                    [checked]="item.active === 'Y'">
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </td>
+                                        <td class="text-center">
+                                            <button (click)="onChangeMemberPassword(item, form)" type="button"
+                                                class="btn btn-sm btn-info">
+                                                <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+                                            </button>
+                                            &nbsp;
+                                            <button *ngIf="account.cid!=item.cidEnc" (click)="onDeleteMember(item)"
+                                                type="button" class="btn btn-sm btn-danger">
+                                                <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<div class="modal fade" id="modal-edit-password">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">
+                    <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+                    แก้ไขรหัสผ่าน
+                </h4>
+            </div>
+            <form #form="ngForm" (ngSubmit)="onSubmit(form)">
+                <div class="modal-body">
+                    <div class="form-group has-feedback">
+                        <label for="name">ชื่อสมาชิก:</label>
+                        <input type="text" id="name" name="name" class="form-control"
+                            value="{{member.pname}}{{member.fname || member.hosname}} {{member.lname}}" disabled />
+                        <span class="glyphicon glyphicon-user form-control-feedback"></span>
+                    </div>
+                    <div class="form-group has-feedback"
+                        [ngClass]="{'has-error': (!isValidatePassword(password) || passwordCtrl.invalid) && (passwordCtrl.touched || isSubmitted)}">
+                        <label for="name">ตั้งรหัสผ่านใหม่:</label>
+                        <input type="password" [(ngModel)]="password" id="password" name="password" class="form-control"
+                            placeholder="รหัสผ่านใหม่" #passwordCtrl="ngModel" required />
+                        <span class="glyphicon glyphicon-lock form-control-feedback"></span>
+                        <div *ngIf="(!isValidatePassword(password) || passwordCtrl.invalid) && (passwordCtrl.touched || isSubmitted)"
+                            class="text-red invalid-feedback">
+                            <small>
+                                {{
+                                (passwordCtrl.invalid) ?
+                                'กรุณากรอกรหัสผ่านใหม่' :
+                                'รหัสผ่านจำเป็นต้องมีอักษรภาษาอังกฤษ พิมพ์เล็ก พิมพ์ใหญ่ ตัวเลข และ อัขระพิเศษ
+                                ผสมกันอยู่อย่างน้อย 8 ตัวอักษรขึ้นไป'
+                                }}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="form-group has-feedback"
+                        [ngClass]="{'has-error': (password!=repassword || repasswordCtrl.invalid) && (repasswordCtrl.touched || isSubmitted)}">
+                        <input type="password" [(ngModel)]="repassword" id="repassword" name="repassword"
+                            class="form-control" placeholder="ยืนยันรหัสผ่านใหม่" #repasswordCtrl="ngModel" required />
+                        <span class="glyphicon glyphicon-lock form-control-feedback"></span>
+                        <div *ngIf="(password!=repassword || repasswordCtrl.invalid) && (repasswordCtrl.touched || isSubmitted)"
+                            class="text-red invalid-feedback">
+                            <small>
+                                {{ (repasswordCtrl.invalid) ? 'กรุณายืนยันรหัสผ่านใหม่' : 'รหัสผ่านที่กรอกไม่ตรงกัน' }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa fa-floppy-o" aria-hidden="true"></i>
+                        บันทึก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="exampleModalPass" tabindex="-1" aria-labelledby="exampleModalLabel" class="modal fade" style="display: none;"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <h5 id="exampleModalLabel" class="modal-title">เปลี่ยนรหัสผ่าน</h5><button type="button"
+                    data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true">×</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group"><label for="exampleInputEmail1">Email</label><input type="text" disabled=""
+                        class="form-control"></div>
+                <div class="form-group"><label for="exampleInputEmail1">รหัสผ่านใหม่</label><input type="password"
+                        placeholder="*รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษรขึ้นไป!" name="password"
+                        class="p-element form-control ng-untouched ng-pristine ng-valid is-invalid"><span
+                        id="exampleInputPassword1-error" class="error invalid-feedback">*รหัสผ่านต้องมีความยาวอย่างน้อย
+                        8 ตัวอักษรขึ้นไป!</span></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" data-dismiss="modal" class="btn btn-secondary"> ยกเลิก </button>
+                <button type="button" class="btn btn-primary" disabled=""> ยืนยันเปลี่ยนรหัสผ่าน </button>
+            </div>
+        </div>
+    </div>
+</div>
