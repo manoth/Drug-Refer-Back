@@ -5,6 +5,7 @@ import re
 import stat
 import tempfile
 import unittest
+import shutil
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -12,6 +13,7 @@ from fastapi.testclient import TestClient
 from itsdangerous import TimestampSigner
 
 from agent.web_config import WebConfig
+from agent.assets import prepare_web_assets
 from agent.disk_logs import read_recent_disk_logs
 from agent.remote_query import RemoteApiError
 from agent.preview import read_preview_tail
@@ -30,6 +32,40 @@ def csrf_from(html: str) -> str:
 
 
 class WebWizardTests(unittest.TestCase):
+    def test_frozen_web_assets_survive_bundle_directory_removal(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            bundle = root / "_MEI12345" / "agent"
+            persistent = root / "local-app-data" / "DrugReferAgent"
+            (bundle / "templates").mkdir(parents=True)
+            (bundle / "static").mkdir()
+            for relative in (
+                "templates/base.html",
+                "templates/login.html",
+                "templates/logs.html",
+                "static/app.css",
+                "static/app.js",
+            ):
+                path = bundle / relative
+                path.write_text(f"asset:{relative}", encoding="utf-8")
+
+            asset_root = prepare_web_assets(
+                bundle,
+                persistent,
+                frozen=True,
+                version="test-version",
+            )
+            shutil.rmtree(root / "_MEI12345")
+
+            self.assertEqual(
+                "asset:templates/login.html",
+                (asset_root / "templates/login.html").read_text(encoding="utf-8"),
+            )
+            self.assertEqual(
+                "asset:static/app.js",
+                (asset_root / "static/app.js").read_text(encoding="utf-8"),
+            )
+
     def test_disk_log_tail_combines_rotated_agent_and_supervisor_logs(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             log_dir = Path(directory)
@@ -235,7 +271,7 @@ class WebWizardTests(unittest.TestCase):
 
         self.assertEqual(200, response.status_code)
         self.assertTrue(response.json()["ok"])
-        self.assertEqual("1.1.0", response.json()["version"])
+        self.assertEqual("1.2.0", response.json()["version"])
 
     def test_healthz_fails_when_configured_worker_is_stopped(self) -> None:
         with patch.object(

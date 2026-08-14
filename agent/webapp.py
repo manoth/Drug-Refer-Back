@@ -23,6 +23,7 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from .preview import clear_preview_history, compact_preview_history
 from . import __version__
+from .assets import prepare_web_assets
 from .disk_logs import read_recent_disk_logs
 from .remote_query import QueryProvider, RemoteApiError
 from .security import (
@@ -33,7 +34,7 @@ from .security import (
     verify_csrf,
 )
 from .session import ResilientSessionMiddleware
-from .web_config import AGENT_DIR, WebConfig
+from .web_config import AGENT_DIR, FROZEN, PROJECT_ROOT, WebConfig
 from .web_runtime import (
     BrokerLogHandler,
     LogBroker,
@@ -259,7 +260,13 @@ def create_app(config: Optional[WebConfig] = None) -> FastAPI:
         cipher.signing_secret,
         salt="database-test-result",
     )
-    templates = Jinja2Templates(directory=str(AGENT_DIR / "templates"))
+    web_asset_root = prepare_web_assets(
+        AGENT_DIR,
+        PROJECT_ROOT,
+        frozen=FROZEN,
+        version=__version__,
+    )
+    templates = Jinja2Templates(directory=str(web_asset_root / "templates"))
 
     @asynccontextmanager
     async def lifespan(application: FastAPI):
@@ -286,7 +293,11 @@ def create_app(config: Optional[WebConfig] = None) -> FastAPI:
         same_site="lax",
         https_only=web.secure_cookie,
     )
-    app.mount("/static", StaticFiles(directory=str(AGENT_DIR / "static")), name="static")
+    app.mount(
+        "/static",
+        StaticFiles(directory=str(web_asset_root / "static")),
+        name="static",
+    )
 
     app.state.web_config = web
     app.state.store = store

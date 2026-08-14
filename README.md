@@ -1,6 +1,6 @@
 # HOSxP Drug Refer Agent
 
-Current version: **1.1.0**
+Current version: **1.2.0**
 
 Secure local web service สำหรับตรวจการเปลี่ยนแปลงของ `opitemrece` บน MariaDB
 Slave, ดาวน์โหลด SQL จาก Drug Refer API และส่ง JSON ไปยัง API พร้อม local retry
@@ -176,6 +176,11 @@ service ใหม่อัตโนมัติเมื่อ process หลุ
 
 หาก browser มี session cookie จากรุ่นเก่าหรือ cookie เสีย Agent จะล้าง session และเปิด
 หน้า Login ใหม่เอง แทนการตอบหน้าเปล่า `Internal Server Error`
+
+ใน Windows EXE ไฟล์ template/static จะถูกคัดลอกจากพื้นที่ชั่วคราวของ PyInstaller ไปยัง
+`%LOCALAPPDATA%\\DrugReferAgent\\runtime-assets\\<version>` ตอนเริ่ม service ทุกครั้ง
+หน้าเว็บจึงยังทำงานแม้ Windows หรือโปรแกรม cleanup ลบโฟลเดอร์ `_MEI...` หลังเปิด Agent
+ต่อเนื่องหลายวัน
 
 ## Tests
 
