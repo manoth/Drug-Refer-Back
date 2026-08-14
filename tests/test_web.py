@@ -271,7 +271,7 @@ class WebWizardTests(unittest.TestCase):
 
         self.assertEqual(200, response.status_code)
         self.assertTrue(response.json()["ok"])
-        self.assertEqual("1.2.0", response.json()["version"])
+        self.assertEqual("1.3.0", response.json()["version"])
 
     def test_healthz_fails_when_configured_worker_is_stopped(self) -> None:
         with patch.object(

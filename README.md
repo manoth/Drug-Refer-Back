@@ -1,6 +1,6 @@
 # HOSxP Drug Refer Agent
 
-Current version: **1.2.0**
+Current version: **1.3.0**
 
 Secure local web service สำหรับตรวจการเปลี่ยนแปลงของ `opitemrece` บน MariaDB
 Slave, ดาวน์โหลด SQL จาก Drug Refer API และส่ง JSON ไปยัง API พร้อม local retry
@@ -181,6 +181,10 @@ service ใหม่อัตโนมัติเมื่อ process หลุ
 `%LOCALAPPDATA%\\DrugReferAgent\\runtime-assets\\<version>` ตอนเริ่ม service ทุกครั้ง
 หน้าเว็บจึงยังทำงานแม้ Windows หรือโปรแกรม cleanup ลบโฟลเดอร์ `_MEI...` หลังเปิด Agent
 ต่อเนื่องหลายวัน
+
+เมื่อ Double-click EXE รุ่นใหม่ ตัว launcher จะอ่านเลขรุ่นจาก Agent ที่กำลังรัน หากเป็น
+รุ่นเก่าจะหยุด supervisor และ web-service child เดิม รอ single-instance lock ถูกปล่อย
+แล้วเริ่ม EXE รุ่นใหม่แทนทันที หากเป็นรุ่นเดียวกันจะเปิดหน้าเว็บโดยไม่สร้าง worker ซ้ำ
 
 ## Tests
 

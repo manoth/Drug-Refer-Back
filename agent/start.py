@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+import csv
 from datetime import datetime
 import ipaddress
+import json
 import logging
+import os
 import subprocess
 import sys
 import threading
@@ -16,6 +19,7 @@ from typing import Optional
 
 import uvicorn
 
+from . import __version__
 from .web_config import WebConfig
 from .webapp import create_app
 from .windows_startup import configure_windows_startup
@@ -29,6 +33,7 @@ SUPERVISOR_STARTUP_GRACE_SECONDS = 60.0
 SUPERVISOR_MAX_HEALTH_FAILURES = 6
 SUPERVISOR_LOG_MAX_BYTES = 512 * 1024
 SUPERVISOR_LOG_BACKUPS = 2
+TAKEOVER_TIMEOUT_SECONDS = 15.0
 
 
 class WindowsSingleInstance:
@@ -83,6 +88,83 @@ def _health_is_ready(url: str, timeout: float = 2.0) -> bool:
             return response.status == 200
     except (OSError, urllib.error.URLError):
         return False
+
+
+def _running_agent_version(url: str, timeout: float = 2.0) -> Optional[str]:
+    """Return the running version, an empty legacy version, or None if offline."""
+    try:
+        with urllib.request.urlopen(
+            url.rstrip("/") + "/healthz",
+            timeout=timeout,
+        ) as response:
+            if response.status != 200:
+                return None
+            payload = json.load(response)
+            if not isinstance(payload, dict):
+                return ""
+            return str(payload.get("version") or "")
+    except (OSError, ValueError, urllib.error.URLError):
+        return None
+
+
+def _agent_process_ids(tasklist_csv: str, current_pid: int) -> list[int]:
+    """Extract other DrugReferAgent process IDs from Windows tasklist CSV."""
+    result: list[int] = []
+    for row in csv.reader(tasklist_csv.splitlines()):
+        if len(row) < 2:
+            continue
+        image_name = row[0].strip().casefold()
+        if not image_name.startswith("drugreferagent") or not image_name.endswith(
+            ".exe"
+        ):
+            continue
+        try:
+            pid = int(row[1].replace(",", ""))
+        except ValueError:
+            continue
+        if pid != current_pid:
+            result.append(pid)
+    return result
+
+
+def _terminate_other_agent_processes(timeout: float = TAKEOVER_TIMEOUT_SECONDS) -> bool:
+    """Stop old supervisor/child processes so this executable can take over."""
+    if sys.platform != "win32":
+        return False
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    deadline = time.monotonic() + timeout
+    current_pid = os.getpid()
+    while time.monotonic() < deadline:
+        listing = subprocess.run(
+            ["tasklist", "/FO", "CSV", "/NH"],
+            capture_output=True,
+            text=True,
+            check=False,
+            creationflags=flags,
+        )
+        pids = _agent_process_ids(listing.stdout, current_pid)
+        if not pids:
+            return True
+        for pid in pids:
+            subprocess.run(
+                ["taskkill", "/PID", str(pid), "/T", "/F"],
+                capture_output=True,
+                check=False,
+                creationflags=flags,
+            )
+        time.sleep(0.25)
+    return False
+
+
+def _acquire_after_takeover(port: int, timeout: float = TAKEOVER_TIMEOUT_SECONDS) -> Optional[WindowsSingleInstance]:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        candidate = WindowsSingleInstance(port)
+        if candidate.acquire():
+            return candidate
+        candidate.close()
+        time.sleep(0.25)
+    return None
 
 
 def _write_supervisor_log(config: WebConfig, message: str) -> None:
@@ -209,13 +291,40 @@ def _run_frozen_windows_supervisor(
     config: WebConfig,
     url: str,
     open_browser: bool,
+    allow_takeover: bool = False,
 ) -> int:
     instance = WindowsSingleInstance(config.port)
     if not instance.acquire():
         instance.close()
-        if open_browser:
-            _open_browser_when_ready(url)
-        return 0
+        running_version = _running_agent_version(url)
+        if not allow_takeover or running_version == __version__:
+            if open_browser:
+                _open_browser_when_ready(url)
+            return 0
+        _write_supervisor_log(
+            config,
+            "Update takeover requested: "
+            f"running_version={running_version or 'legacy/unknown'} "
+            f"new_version={__version__}",
+        )
+        if not _terminate_other_agent_processes():
+            _write_supervisor_log(
+                config,
+                "Update takeover failed: old Agent processes did not stop",
+            )
+            return UNEXPECTED_SERVER_EXIT
+        replacement = _acquire_after_takeover(config.port)
+        if replacement is None:
+            _write_supervisor_log(
+                config,
+                "Update takeover failed: single-instance lock was not released",
+            )
+            return UNEXPECTED_SERVER_EXIT
+        instance = replacement
+        _write_supervisor_log(
+            config,
+            f"Update takeover succeeded: starting version={__version__}",
+        )
 
     if open_browser:
         threading.Thread(
@@ -315,6 +424,7 @@ def main() -> int:
             config,
             url,
             open_browser=not args.no_browser and not args.startup,
+            allow_takeover=not args.startup,
         )
 
     if args.server_child:
