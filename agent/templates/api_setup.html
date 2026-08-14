@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}เชื่อมต่อ API • HOSxP Agent{% endblock %}
+{% block page %}api{% endblock %}
+{% block content %}
+{% from "_progress.html" import setup_progress with context %}
+<section class="narrow-section wide">
+  {{ setup_progress(3) }}
+  <div class="section-heading"><span class="eyebrow">STEP 3 OF 4</span><h1><span class="heading-icon">{{ icon('api') }}</span>เชื่อมต่อ Drug Refer API</h1><p>ระบบจะ Login, รับ JWT และดาวน์โหลด SQL สำหรับประมวลผล</p></div>
+  <div class="card split-card">
+    <div>
+      {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+      <form action="/setup/api" method="post" class="stack-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>API Domain<input name="api_base_url" type="url" value="{{ api_base_url }}" placeholder="https://cpho.dentdata.net" autocomplete="url" required></label>
+        <p class="field-help">ระบบจะ Login ที่ <code>/drugrefer/api/signIn</code> ภายใต้ Domain นี้</p>
+        <label>แหล่ง SQL
+          <select name="query_source" required>
+            <option value="remote" {{ 'selected' if query_source == 'remote' else '' }}>GET จาก API</option>
+            <option value="file" {{ 'selected' if query_source == 'file' else '' }}>ไฟล์ sql.txt ภายในเครื่อง</option>
+          </select>
+        </label>
+        <label>SQL Query ID<input name="api_query_id" type="number" min="1" max="999999" value="{{ api_query_id }}" inputmode="numeric" required></label>
+        <p class="field-help">GET SQL และ POST JSON: <code>/drugrefer/api/syncData/query/{{ api_query_id }}</code></p>
+        <label>โหมดส่งข้อมูล
+          <select name="delivery_mode" required>
+            <option value="live" {{ 'selected' if delivery_mode == 'live' else '' }}>LIVE — ส่งข้อมูลเข้า API จริง</option>
+            <option value="dry_run" {{ 'selected' if delivery_mode == 'dry_run' else '' }}>DRY RUN — แสดง Preview เท่านั้น</option>
+          </select>
+        </label>
+        <label class="confirmation-row"><input name="confirm_live" type="checkbox" value="yes"><span>ยืนยันว่าเมื่อเลือก LIVE ระบบสามารถส่ง VN ที่ค้างในคิวขึ้น API ได้</span></label>
+        <label class="confirmation-row"><input name="start_with_windows" type="checkbox" value="yes" {{ 'checked' if start_with_windows else '' }}><span><strong>เริ่ม Agent พร้อม Windows</strong><br>เมื่อผู้ใช้ Sign in เข้า Windows ระบบจะเปิด Agent เบื้องหลังโดยไม่เปิดหน้าต่าง Terminal หรือ Browser</span></label>
+        <p class="field-help">มีผลเมื่อใช้งานไฟล์ Windows EXE โดย Agent จะจัดการ Startup ของผู้ใช้ Windows ปัจจุบันให้อัตโนมัติ</p>
+        <label>API Username<input name="api_username" value="{{ api_username or '' }}" autocomplete="username" required></label>
+        <label>API Password<input name="api_password" type="password" autocomplete="new-password" required></label>
+        <button class="button primary" type="submit">{{ icon('send') }}<span>ทดสอบ API บันทึก และเริ่มทำงาน</span></button>
+      </form>
+    </div>
+    <aside class="info-panel">
+      <span class="lock-mark">{{ icon('shield') }}</span>
+      <h3>Encrypted at rest</h3>
+      <p>Username และ password ถูกเข้ารหัสด้วย master key ของเครื่องก่อนบันทึก</p>
+      <ul><li>JWT อยู่ใน memory เท่านั้น</li><li>ไม่แสดง secret ใน logs</li><li>SQL cache ไม่มี token</li></ul>
+    </aside>
+  </div>
+</section>
+{% endblock %}

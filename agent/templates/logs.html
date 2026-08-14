@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Realtime Logs • HOSxP Agent{% endblock %}
+{% block page %}logs{% endblock %}
+{% block content %}
+<section class="dashboard">
+  <div class="section-heading dashboard-heading">
+    <div><span class="eyebrow">{{ 'DRY RUN' if dry_run else 'LIVE DELIVERY' }}</span><h1>Agent Operations</h1><p>{{ 'ติดตามสถานะ เหตุการณ์ และตรวจ JSON ก่อนเปิดใช้การ POST จริง' if dry_run else 'กำลังส่งข้อมูลไปยัง API จริง' }}</p></div>
+    <div class="worker-controls">
+      <input id="worker-csrf" type="hidden" value="{{ csrf_token }}">
+      <button class="button secondary small" data-worker-action="start">{{ icon('play') }}<span>Start</span></button>
+      <button class="button secondary small" data-worker-action="restart">{{ icon('restart') }}<span>Restart</span></button>
+      <button class="button danger small" data-worker-action="stop">{{ icon('stop') }}<span>Stop</span></button>
+      <button class="button danger small" data-worker-action="shutdown">{{ icon('power') }}<span>Exit Agent</span></button>
+    </div>
+  </div>
+  <div class="status-grid">
+    <article class="status-card"><span class="status-label">{{ icon('activity') }} Worker</span><strong id="worker-state">{{ 'RUNNING' if worker.running else 'STOPPED' }}</strong><small id="worker-error">{{ worker.last_error or 'No active error' }}</small></article>
+    <article class="status-card"><span class="status-label">{{ icon('clock') }} Poll cycles</span><strong id="poll-count">{{ worker.poll_count }}</strong><small id="last-poll">{{ worker.last_poll_at or 'Waiting for first poll' }}</small></article>
+    <article class="status-card"><span class="status-label">{{ icon('shield') }} Delivery mode</span><strong>{{ 'DRY RUN' if dry_run else 'LIVE' }}</strong><small>{{ 'No patient-data POST is sent' if dry_run else 'Patient data POST is enabled' }}</small></article>
+  </div>
+  <div class="terminal-card">
+    <div class="terminal-bar"><span class="lights"><i></i><i></i><i></i></span><strong>agent.log — ประวัติจากดิสก์ + realtime • แสดงสูงสุด 500 บรรทัด</strong><div class="terminal-actions"><button id="copy-log" type="button" title="คัดลอก Log ทั้งหมดที่แสดง">{{ icon('copy') }}<span id="copy-log-label">Copy logs</span></button><button id="clear-log" type="button">Clear view</button></div></div>
+    <pre id="log-terminal" aria-live="polite"><span class="muted">กำลังโหลด Log ที่บันทึกไว้และเชื่อมต่อ realtime…</span></pre>
+  </div>
+  <div class="terminal-card preview-card">
+    <div class="terminal-bar"><span>{{ 'dry-run POST preview' if dry_run else 'LIVE POST payload history' }} — 20 เคสล่าสุด • ใหม่สุดอยู่บน</span><strong>{{ 'NO DATA SENT' if dry_run else 'API DELIVERY ON' }}</strong><span class="preview-live">● AUTO • {{ 'QUEUED LOCALLY' if dry_run else 'ACKNOWLEDGED ONLY' }}</span><div class="preview-actions"><button id="collapse-all-preview" type="button">ย่อทุก Key</button><button id="expand-all-preview" type="button">ขยายทุก Key</button><button id="toggle-preview" type="button" aria-controls="preview-json" aria-expanded="true">ซ่อน JSON</button><button id="refresh-preview" type="button">Refresh</button><button id="clear-preview" class="danger-text" type="button">ล้างประวัติ</button></div></div>
+    <div id="preview-json" class="json-tree" aria-live="polite"><span class="muted">กำลังโหลด JSON preview…</span></div>
+  </div>
+</section>
+{% endblock %}

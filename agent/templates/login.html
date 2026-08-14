@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}เข้าสู่ระบบ • HOSxP Agent{% endblock %}
+{% block page %}login{% endblock %}
+{% block content %}
+<section class="auth-layout">
+  <div class="hero-copy">
+    <div class="hero-brand-symbol"><img src="{{ url_for('static', path='brand-logo.png') }}" alt="ตราสัญลักษณ์ Drug Refer Agent"></div>
+    <span class="eyebrow">SECURE LOCAL SERVICE</span>
+    <h1>เชื่อม HOSxP<br>อย่างเป็นระบบ</h1>
+    <p>ตั้งค่าการเชื่อมต่อ ติดตามเหตุการณ์ และตรวจสอบการทำงานทั้งหมดได้จากหน้าจอเดียว</p>
+    <div class="security-note"><span>●</span> Local-first • Encrypted • Auditable</div>
+  </div>
+  <div class="card auth-card">
+    <div class="card-heading">
+      <span class="step-icon">{{ icon('lock') }}</span>
+      <div><h2>เข้าสู่ระบบ</h2><p>สำหรับผู้ดูแล Agent</p></div>
+    </div>
+    {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+    <form action="/login" method="post" class="stack-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label>ชื่อผู้ใช้<input name="username" autocomplete="username" required autofocus></label>
+      <label>รหัสผ่าน<input type="password" name="password" autocomplete="current-password" required></label>
+      <button class="button primary full" type="submit"><span>เข้าสู่ระบบ</span>{{ icon('arrow-right') }}</button>
+    </form>
+    <p class="initial-hint">เข้าสู่ระบบครั้งแรกด้วย <code>admin / admin</code> และระบบจะบังคับเปลี่ยนทันที</p>
+  </div>
+</section>
+{% endblock %}

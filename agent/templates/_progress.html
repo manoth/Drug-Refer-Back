@@ -1,0 +1,14 @@
+{% macro setup_progress(current) -%}
+{% set password_done = not user.must_change_password %}
+{% set database_done = setup.database %}
+{% set api_done = setup.api %}
+<div class="progress" aria-label="สถานะการตั้งค่า">
+  {% if current == 1 or password_done %}<a href="/change-password" class="step-node {{ 'done' if password_done else 'active' }} {{ 'current' if current == 1 else '' }}" {% if current == 1 %}aria-current="step"{% endif %} aria-label="ขั้นตอน 1 รหัสผ่านผู้ดูแล {{ 'เสร็จแล้ว' if password_done else 'กำลังทำ' }}">{{ '✓' if password_done else '1' }}</a>{% else %}<span class="step-node locked" aria-disabled="true">1</span>{% endif %}
+  <i class="{{ 'done' if password_done else '' }}"></i>
+  {% if password_done %}<a href="/setup/database" class="step-node {{ 'done' if database_done else 'active' if current == 2 else '' }} {{ 'current' if current == 2 else '' }}" {% if current == 2 %}aria-current="step"{% endif %} aria-label="ขั้นตอน 2 ฐานข้อมูล {{ 'เสร็จแล้ว' if database_done else 'กำลังทำ' }}">{{ '✓' if database_done else '2' }}</a>{% else %}<span class="step-node locked" aria-disabled="true" aria-label="ขั้นตอน 2 ยังไม่เปิดใช้งาน">2</span>{% endif %}
+  <i class="{{ 'done' if database_done else '' }}"></i>
+  {% if database_done %}<a href="/setup/api" class="step-node {{ 'done' if api_done else 'active' if current == 3 else '' }} {{ 'current' if current == 3 else '' }}" {% if current == 3 %}aria-current="step"{% endif %} aria-label="ขั้นตอน 3 API {{ 'เสร็จแล้ว' if api_done else 'กำลังทำ' }}">{{ '✓' if api_done else '3' }}</a>{% else %}<span class="step-node locked" aria-disabled="true" aria-label="ขั้นตอน 3 ยังไม่เปิดใช้งาน">3</span>{% endif %}
+  <i class="{{ 'done' if api_done else '' }}"></i>
+  {% if api_done %}<a href="/logs" class="step-node {{ 'active current' if current == 4 else 'done' }}" {% if current == 4 %}aria-current="step"{% endif %} aria-label="ขั้นตอน 4 Logs {{ 'กำลังทำงาน' if current == 4 else 'เปิดใช้งานแล้ว' }}">4</a>{% else %}<span class="step-node locked" aria-disabled="true" aria-label="ขั้นตอน 4 ยังไม่เปิดใช้งาน">4</span>{% endif %}
+</div>
+{%- endmacro %}

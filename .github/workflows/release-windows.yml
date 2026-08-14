@@ -1,0 +1,75 @@
+name: Build Windows release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-build.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-build.txt
+
+      - name: Run tests
+        run: |
+          python -m unittest discover -s tests -v
+          python -m compileall -q agent tests
+
+      - name: Build EXE
+        run: python -m PyInstaller --clean --noconfirm DrugReferAgent.spec
+
+      - name: Name release files and create checksum
+        shell: pwsh
+        run: |
+          $version = "manual-${{ github.run_number }}"
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $version = "${{ github.ref_name }}"
+          }
+          $asset = "DrugReferAgent-$version-windows-x64.exe"
+          Copy-Item "dist/DrugReferAgent.exe" $asset
+          $hash = (Get-FileHash $asset -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $asset" | Set-Content -Encoding ascii SHA256SUMS.txt
+          "RELEASE_ASSET=$asset" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DrugReferAgent-${{ github.run_number }}-windows-x64
+          path: |
+            ${{ env.RELEASE_ASSET }}
+            SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" `
+            "$env:RELEASE_ASSET" `
+            "SHA256SUMS.txt" `
+            --repo "${{ github.repository }}" `
+            --title "Drug Refer Agent ${{ github.ref_name }}" `
+            --notes-file RELEASE_NOTES.md `
+            --verify-tag

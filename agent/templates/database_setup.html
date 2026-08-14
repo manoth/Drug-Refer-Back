@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}เชื่อมต่อ HOSxP • HOSxP Agent{% endblock %}
+{% block page %}database{% endblock %}
+{% block content %}
+{% from "_progress.html" import setup_progress with context %}
+<section class="narrow-section wide">
+  {{ setup_progress(2) }}
+  <div class="section-heading"><span class="eyebrow">STEP 2 OF 4</span><h1><span class="heading-icon">{{ icon('database') }}</span>เชื่อมต่อฐานข้อมูล HOSxP</h1><p>Agent จะใช้การเชื่อมต่อนี้สำหรับอ่านข้อมูลเท่านั้น</p></div>
+  <div class="card">
+    {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+    <form id="db-form" action="/setup/database/save" method="post" class="grid-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="test_token" id="test-token" value="">
+      <label class="span-2">Host / IP Address<input name="db_host" value="{{ values.db_host or '' }}" placeholder="192.168.1.20" required></label>
+      <label>Port<input name="db_port" type="number" min="1" max="65535" value="{{ values.db_port or '3306' }}" required></label>
+      <label>Database<input name="db_name" value="{{ values.db_name or '' }}" placeholder="hos" required></label>
+      <label>Username<input name="db_user" value="{{ values.db_user or '' }}" autocomplete="username" required></label>
+      <label>Password<input name="db_password" type="password" autocomplete="new-password" required></label>
+      <div id="db-test-result" class="test-result span-2" aria-live="polite">กรอกข้อมูลแล้วกดทดสอบการเชื่อมต่อ</div>
+      <div class="button-row span-2">
+        <button id="test-db" class="button secondary" type="button">{{ icon('plug') }}<span>ทดสอบการเชื่อมต่อ</span></button>
+        <button id="save-db" class="button primary" type="submit" disabled>{{ icon('check') }}<span>บันทึกและดำเนินการต่อ</span></button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
