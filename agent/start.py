@@ -147,7 +147,7 @@ def _terminate_other_agent_processes(timeout: float = TAKEOVER_TIMEOUT_SECONDS) 
             return True
         for pid in pids:
             subprocess.run(
-                ["taskkill", "/PID", str(pid), "/T", "/F"],
+                ["taskkill", "/PID", str(pid), "/F"],
                 capture_output=True,
                 check=False,
                 creationflags=flags,

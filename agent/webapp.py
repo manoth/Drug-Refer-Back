@@ -50,6 +50,7 @@ from .web_runtime import (
 )
 from .web_store import WebStore
 from .windows_startup import configure_windows_startup
+from .updater import UpdateManager
 
 
 LOGGER = logging.getLogger("hosxp-polling-agent.web")
@@ -274,6 +275,7 @@ def create_app(config: Optional[WebConfig] = None) -> FastAPI:
     broker = LogBroker()
     _configure_logging(broker, web)
     polling = PollingService(web, store)
+    updater = UpdateManager(__version__, PROJECT_ROOT / "updates")
     limiter = LoginLimiter()
     test_serializer = URLSafeTimedSerializer(
         cipher.signing_secret,
@@ -322,6 +324,7 @@ def create_app(config: Optional[WebConfig] = None) -> FastAPI:
     app.state.store = store
     app.state.polling = polling
     app.state.broker = broker
+    app.state.updater = updater
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
@@ -350,6 +353,7 @@ def create_app(config: Optional[WebConfig] = None) -> FastAPI:
             "csrf_token": _csrf(request),
             "flash": request.session.pop("flash", None),
             "setup": store.setup_status() if user else {},
+            "agent_version": __version__,
         }
         if context:
             payload.update(context)
@@ -957,5 +961,56 @@ def create_app(config: Optional[WebConfig] = None) -> FastAPI:
                 "X-Content-Type-Options": "nosniff",
             },
         )
+
+    @app.get("/api/update/status")
+    async def update_status(request: Request):
+        if not require_login(request):
+            return JSONResponse({"ok": False}, 401)
+        try:
+            status = await asyncio.to_thread(updater.check_for_update)
+            return {"ok": True, **status}
+        except Exception as exc:
+            LOGGER.warning("GitHub update check failed: %s", exc)
+            return JSONResponse({"ok": False, "error": str(exc)}, 503)
+
+    @app.post("/api/update/install")
+    async def install_update(
+        request: Request,
+        csrf_token: str = Form(...),
+    ):
+        user = require_login(request)
+        if not user:
+            return JSONResponse({"ok": False}, 401)
+        if not csrf_valid(request, csrf_token):
+            return JSONResponse({"ok": False, "error": "Invalid CSRF"}, 403)
+        if sys.platform != "win32" or not FROZEN:
+            return JSONResponse(
+                {"ok": False, "error": "Automatic update requires Windows EXE"},
+                400,
+            )
+        try:
+            release, executable = await asyncio.to_thread(updater.download_latest)
+        except Exception as exc:
+            LOGGER.exception("Automatic update download failed")
+            return JSONResponse({"ok": False, "error": str(exc)}, 502)
+        LOGGER.info(
+            "Verified update downloaded by username=%s version=%s path=%s",
+            user["username"],
+            release.version,
+            executable,
+        )
+
+        def launch_verified_update() -> None:
+            try:
+                updater.launch(executable)
+            except Exception:
+                LOGGER.exception("Could not launch verified Agent update")
+
+        threading.Timer(1.0, launch_verified_update).start()
+        return {
+            "ok": True,
+            "version": release.version,
+            "restarting": True,
+        }
 
     return app

@@ -50,6 +50,75 @@
     });
   };
 
+  const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+  const checkForUpdate = async () => {
+    if (!csrfMeta?.content || !sweetAlert) return;
+    try {
+      const response = await fetch("/api/update/status", {
+        credentials: "same-origin",
+        cache: "no-store"
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok || !payload.update_available) return;
+      const noticeKey = `agent-update-${payload.latest_version}`;
+      if (window.sessionStorage.getItem(noticeKey)) return;
+      window.sessionStorage.setItem(noticeKey, "shown");
+      const confirmed = await confirmDialog({
+        title: `มี Agent v${payload.latest_version}`,
+        text: `เครื่องนี้ใช้ v${payload.current_version} ต้องการดาวน์โหลดและอัปเดตอัตโนมัติหรือไม่?`,
+        icon: "info",
+        confirmText: "อัปเดตตอนนี้"
+      });
+      if (!confirmed) return;
+      sweetAlert.fire({
+        title: "กำลังดาวน์โหลดอัปเดต",
+        text: "ระบบกำลังตรวจสอบ SHA-256 และเตรียมสลับเวอร์ชัน…",
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => sweetAlert.showLoading()
+      });
+      const body = new FormData();
+      body.append("csrf_token", csrfMeta.content);
+      const installResponse = await fetch("/api/update/install", {
+        method: "POST",
+        body,
+        credentials: "same-origin"
+      });
+      const install = await installResponse.json();
+      if (!installResponse.ok || !install.ok) {
+        throw new Error(install.error || "Update failed");
+      }
+      await sweetAlert.fire({
+        title: `กำลังเริ่ม v${install.version}`,
+        text: "ตัวใหม่กำลังหยุดเวอร์ชันเก่าและรับช่วงทำงาน หน้านี้จะโหลดใหม่อัตโนมัติ",
+        icon: "success",
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        timer: 3500
+      });
+      const deadline = Date.now() + 60000;
+      const waitForUpdate = async () => {
+        if (Date.now() >= deadline) {
+          window.location.reload();
+          return;
+        }
+        try {
+          const health = await fetch(`/healthz?t=${Date.now()}`, {cache: "no-store"});
+          const status = await health.json();
+          if (status.version === install.version) {
+            window.location.reload();
+            return;
+          }
+        } catch (_) {}
+        window.setTimeout(waitForUpdate, 1500);
+      };
+      window.setTimeout(waitForUpdate, 1500);
+    } catch (error) {
+      await notifyDialog("อัปเดตอัตโนมัติไม่สำเร็จ", error.message, "error");
+    }
+  };
+  if (csrfMeta?.content) window.setTimeout(checkForUpdate, 1200);
+
   if (page === "database") {
     const form = document.querySelector("#db-form");
     const testButton = document.querySelector("#test-db");

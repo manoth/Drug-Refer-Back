@@ -22,6 +22,7 @@ body { margin:0; min-height:100vh; color:var(--ink); background:var(--paper); fo
 .brand-mark { width:48px; height:48px; display:grid; place-items:center; overflow:hidden; background:linear-gradient(145deg,#fff,#e8f5ef); border:1px solid rgba(18,107,79,.16); border-radius:15px 15px 15px 5px; box-shadow:0 8px 22px rgba(18,107,79,.12); }
 .brand-mark img { width:46px; height:46px; object-fit:contain; display:block; transform:rotate(-2deg); }
 .brand strong,.brand small { display:block; }.brand small { color:var(--muted); margin-top:2px; font-size:11px; letter-spacing:.07em; text-transform:uppercase; }
+.version-badge { display:inline-flex; margin-left:5px; padding:2px 7px; border-radius:999px; color:var(--green); background:var(--mint); font-size:10px; font-style:normal; font-weight:800; vertical-align:2px; }
 nav { display:flex; align-items:center; gap:22px; } nav a,.link-button,.nav-disabled { display:inline-flex; align-items:center; gap:7px; } nav a,.link-button { color:var(--muted); text-decoration:none; background:none; border:0; font:inherit; cursor:pointer; padding:8px 0; } nav a:hover,.link-button:hover { color:var(--green); }.nav-disabled { color:#aeb8b3; cursor:not-allowed; padding:8px 0; }body[data-page="database"] nav a[href="/setup/database"],body[data-page="api"] nav a[href="/setup/api"],body[data-page="logs"] nav a[href="/logs"] { color:var(--green); font-weight:700; }
 .page-shell { width:min(1180px,calc(100% - 40px)); margin:0 auto; min-height:calc(100vh - 132px); padding:54px 0; }
 body[data-page="logs"] .page-shell { padding-top:24px; }

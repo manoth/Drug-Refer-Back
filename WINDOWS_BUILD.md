@@ -1,6 +1,6 @@
 # Build Drug Refer Agent เป็น Windows EXE
 
-เอกสารนี้ใช้กับ Agent รุ่น 1.4.0
+เอกสารนี้ใช้กับ Agent รุ่น 1.5.0
 
 ต้อง build บน Windows เท่านั้น เพราะ PyInstaller ไม่รองรับการสร้าง Windows EXE
 จาก macOS โดยตรง แนะนำ Windows 10/11 แบบ 64-bit และ Python 3.11–3.13 แบบ 64-bit
@@ -113,7 +113,7 @@ QUERY_REFRESH_SECONDS=3600
 3. Build source รุ่นใหม่ แล้วแทนที่เฉพาะ `DrugReferAgent.exe`
 4. ห้ามลบ `polling.db`, `web.db` หรือ `master.key`
 5. เปิด EXE ใหม่ งาน VN ที่ยังไม่สำเร็จใน `polling.db` จะถูกส่งต่อในรอบถัดไป
-6. เปิด `http://127.0.0.1:8765/healthz` และตรวจว่าแสดง `"version":"1.4.0"`
+6. เปิด `http://127.0.0.1:8765/healthz` และตรวจว่าแสดง `"version":"1.5.0"`
 
 ## ข้อควรระวัง
 
