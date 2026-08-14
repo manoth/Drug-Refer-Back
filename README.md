@@ -1,6 +1,6 @@
 # HOSxP Drug Refer Agent
 
-Current version: **1.3.0**
+Current version: **1.4.0**
 
 Secure local web service สำหรับตรวจการเปลี่ยนแปลงของ `opitemrece` บน MariaDB
 Slave, ดาวน์โหลด SQL จาก Drug Refer API และส่ง JSON ไปยัง API พร้อม local retry
@@ -185,6 +185,11 @@ service ใหม่อัตโนมัติเมื่อ process หลุ
 เมื่อ Double-click EXE รุ่นใหม่ ตัว launcher จะอ่านเลขรุ่นจาก Agent ที่กำลังรัน หากเป็น
 รุ่นเก่าจะหยุด supervisor และ web-service child เดิม รอ single-instance lock ถูกปล่อย
 แล้วเริ่ม EXE รุ่นใหม่แทนทันที หากเป็นรุ่นเดียวกันจะเปิดหน้าเว็บโดยไม่สร้าง worker ซ้ำ
+
+Error และ traceback จะถูกเก็บแยกใน `error.log` ขนาดไฟล์ละ 2 MB สำรอง 5 ไฟล์
+หน้า Logs มีปุ่ม **Diagnostic ZIP** สำหรับดาวน์โหลด error/supervisor/startup logs,
+สถานะ worker และ context ล่าสุดที่ปกปิด VN/HN/CID/HOS GUID/token แล้ว โดยไม่รวม
+`post-preview.jsonl` หรือ credentials
 
 ## Tests
 

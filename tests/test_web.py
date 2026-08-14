@@ -6,6 +6,9 @@ import stat
 import tempfile
 import unittest
 import shutil
+import zipfile
+import io
+import logging
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -15,6 +18,7 @@ from itsdangerous import TimestampSigner
 from agent.web_config import WebConfig
 from agent.assets import prepare_web_assets
 from agent.disk_logs import read_recent_disk_logs
+from agent.diagnostics import build_diagnostic_archive
 from agent.remote_query import RemoteApiError
 from agent.preview import read_preview_tail
 from agent.webapp import (
@@ -32,6 +36,41 @@ def csrf_from(html: str) -> str:
 
 
 class WebWizardTests(unittest.TestCase):
+    def test_diagnostic_archive_redacts_identifiers_and_excludes_payloads(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            log_dir = Path(directory)
+            (log_dir / "agent.log").write_text(
+                'INFO event vn=69000001 hos_guid={secret-guid} "cid":"1234567890123"\n',
+                encoding="utf-8",
+            )
+            (log_dir / "error.log").write_text(
+                "ERROR request password=secret Bearer abc.def.ghi\n",
+                encoding="utf-8",
+            )
+            (log_dir / "post-preview.jsonl").write_text(
+                '{"cid":"1234567890123"}\n',
+                encoding="utf-8",
+            )
+
+            _, content = build_diagnostic_archive(
+                log_dir,
+                version="test-version",
+                worker_status={"running": True},
+            )
+
+            with zipfile.ZipFile(io.BytesIO(content)) as archive:
+                self.assertNotIn("post-preview.jsonl", archive.namelist())
+                combined = "\n".join(
+                    archive.read(name).decode("utf-8")
+                    for name in archive.namelist()
+                )
+            self.assertNotIn("69000001", combined)
+            self.assertNotIn("secret-guid", combined)
+            self.assertNotIn("1234567890123", combined)
+            self.assertNotIn("password=secret", combined)
+            self.assertNotIn("abc.def.ghi", combined)
+            self.assertIn("[REDACTED]", combined)
+
     def test_frozen_web_assets_survive_bundle_directory_removal(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -271,7 +310,20 @@ class WebWizardTests(unittest.TestCase):
 
         self.assertEqual(200, response.status_code)
         self.assertTrue(response.json()["ok"])
-        self.assertEqual("1.3.0", response.json()["version"])
+        self.assertEqual("1.4.0", response.json()["version"])
+
+    def test_authenticated_user_can_download_diagnostic_zip(self) -> None:
+        self.login_and_change_password()
+        logging.getLogger("diagnostic-test").error("test diagnostic failure")
+
+        response = self.client.get("/api/logs/diagnostics")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("application/zip", response.headers["content-type"])
+        self.assertIn("attachment", response.headers["content-disposition"])
+        with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+            self.assertIn("diagnostics.json", archive.namelist())
+            self.assertIn("error.log", archive.namelist())
 
     def test_healthz_fails_when_configured_worker_is_stopped(self) -> None:
         with patch.object(

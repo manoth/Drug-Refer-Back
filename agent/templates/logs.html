@@ -9,6 +9,7 @@
       <input id="worker-csrf" type="hidden" value="{{ csrf_token }}">
       <button class="button secondary small" data-worker-action="start">{{ icon('play') }}<span>Start</span></button>
       <button class="button secondary small" data-worker-action="restart">{{ icon('restart') }}<span>Restart</span></button>
+      <a class="button secondary small" href="/api/logs/diagnostics">{{ icon('download') }}<span>Diagnostic ZIP</span></a>
       <button class="button danger small" data-worker-action="stop">{{ icon('stop') }}<span>Stop</span></button>
       <button class="button danger small" data-worker-action="shutdown">{{ icon('power') }}<span>Exit Agent</span></button>
     </div>

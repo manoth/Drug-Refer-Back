@@ -16,7 +16,13 @@ from urllib.parse import urlsplit
 
 import pymysql
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    Response,
+    StreamingResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
@@ -25,6 +31,7 @@ from .preview import clear_preview_history, compact_preview_history
 from . import __version__
 from .assets import prepare_web_assets
 from .disk_logs import read_recent_disk_logs
+from .diagnostics import build_diagnostic_archive
 from .remote_query import QueryProvider, RemoteApiError
 from .security import (
     CredentialCipher,
@@ -118,6 +125,18 @@ def _configure_logging(broker: LogBroker, web: WebConfig) -> None:
         logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
     )
     root.addHandler(file_handler)
+    error_handler = RotatingFileHandler(
+        log_path.with_name("error.log"),
+        maxBytes=2 * 1024 * 1024,
+        backupCount=5,
+        encoding="utf-8",
+    )
+    error_handler.agent_file = True  # type: ignore[attr-defined]
+    error_handler.setLevel(logging.ERROR)
+    error_handler.setFormatter(
+        logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+    )
+    root.addHandler(error_handler)
     web_handler = BrokerLogHandler(broker)
     web_handler.setFormatter(logging.Formatter("%(name)s — %(message)s"))
     root.addHandler(web_handler)
@@ -910,5 +929,33 @@ def create_app(config: Optional[WebConfig] = None) -> FastAPI:
             "items": items,
             "broker_sequence": sequence,
         }
+
+    @app.get("/api/logs/diagnostics")
+    async def download_diagnostics(request: Request):
+        user = require_login(request)
+        if not user:
+            return JSONResponse({"ok": False}, 401)
+        try:
+            filename, content = await asyncio.to_thread(
+                build_diagnostic_archive,
+                web.output_jsonl.parent,
+                version=__version__,
+                worker_status=polling.status(),
+            )
+        except Exception as exc:
+            LOGGER.exception("Could not build diagnostic archive")
+            return JSONResponse({"ok": False, "error": str(exc)}, 500)
+        LOGGER.info(
+            "Diagnostic archive downloaded by username=%s",
+            user["username"],
+        )
+        return Response(
+            content,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "X-Content-Type-Options": "nosniff",
+            },
+        )
 
     return app

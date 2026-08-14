@@ -1,17 +1,14 @@
-# Drug Refer Agent v1.3.0
+# Drug Refer Agent v1.4.0
 
-รุ่นอัปเดตแบบรับช่วงต่ออัตโนมัติ
+รุ่นเพิ่ม Diagnostic Logs สำหรับวิเคราะห์และปรับปรุง Agent รุ่นถัดไป
 
-- Double-click EXE รุ่นใหม่แล้ว launcher จะตรวจเลขรุ่นที่ port 8765
-- ถ้ามีรุ่นเก่าทำงานอยู่ จะหยุดทั้ง supervisor และ web-service child เดิม รอ lock ถูกปล่อย แล้วเริ่มรุ่นใหม่ทันที
-- ถ้าเป็นรุ่นเดียวกัน จะเปิดหน้าเว็บเดิมโดยไม่สร้าง worker ซ้ำ
-- Windows Startup Registry จะเปลี่ยนไปชี้ EXE รุ่นใหม่หลังรับช่วงสำเร็จ
-- รวมการแก้ persistent web assets จาก v1.2.0 และ session/health recovery จาก v1.1.0
+- เก็บ ERROR/CRITICAL และ traceback แยกใน `error.log` แบบหมุนไฟล์ 2 MB สำรอง 5 ไฟล์
+- เพิ่มปุ่ม **Diagnostic ZIP** ในหน้า Logs
+- ZIP รวม error logs, supervisor logs, startup error, version/platform/worker status และ context ล่าสุด
+- ปกปิด VN, HN, CID, HOS GUID, password-like fields และ bearer tokens อัตโนมัติ
+- ไม่รวม `post-preview.jsonl` ซึ่งมีข้อมูล payload ผู้ป่วย
+- รวม automatic version takeover จาก v1.3.0 และ persistent web assets จาก v1.2.0
 
 ## วิธีอัปเดต
 
-1. ดาวน์โหลด EXE v1.3.0 ไปไว้ในตำแหน่งถาวรที่ต้องการใช้งาน
-2. Double-click ไฟล์ใหม่ได้ทันที ไม่ต้องปิดรุ่นเดิมด้วยตนเอง
-3. รอหน้าเว็บเปิด แล้วตรวจ `http://127.0.0.1:8765/healthz` ต้องเห็น `"version":"1.3.0"`
-
-ข้อมูลเดิมใน `%LOCALAPPDATA%\DrugReferAgent` รวมถึง `web.db`, `polling.db` และ `master.key` จะถูกใช้ต่อโดยไม่ถูกลบ
+วาง EXE v1.4.0 ในตำแหน่งถาวรแล้ว Double-click ได้ทันที ตัวใหม่จะหยุดรุ่นเก่าและรับช่วงทำงานอัตโนมัติ จากนั้นตรวจ `/healthz` ต้องเห็น `"version":"1.4.0"`
