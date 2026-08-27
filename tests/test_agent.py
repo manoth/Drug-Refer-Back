@@ -127,6 +127,26 @@ class StateStoreTests(unittest.TestCase):
         self.store.acknowledge_events(event_ids)
         self.assertEqual([], self.store.pending_events(include_previewed=True))
 
+    def test_master_rows_change_until_the_api_batch_is_acknowledged(self) -> None:
+        first = {
+            "1000001": {"icode": "1000001", "name": "Drug A"},
+            "1000002": {"icode": "1000002", "name": "Drug B"},
+        }
+        changed = self.store.changed_master_rows("drugitems", first)
+        self.assertEqual(["1000001", "1000002"], [item[0] for item in changed])
+
+        self.store.acknowledge_master_rows("drugitems", changed[:1])
+        remaining = self.store.changed_master_rows("drugitems", first)
+        self.assertEqual(["1000002"], [item[0] for item in remaining])
+
+        modified = dict(first)
+        modified["1000001"] = {"icode": "1000001", "name": "Drug A edited"}
+        changed_again = self.store.changed_master_rows("drugitems", modified)
+        self.assertEqual(
+            ["1000001", "1000002"],
+            [item[0] for item in changed_again],
+        )
+
     def test_delete_requires_confirmation(self) -> None:
         self.store.bootstrap({"guid-1": row("guid-1", "vn-1", 1)})
         for _ in range(2):
@@ -222,6 +242,11 @@ class SqlValidationTests(unittest.TestCase):
                 "SELECT vn FROM visits WHERE COALESCE(?, vn) = vn",
                 2,
             )
+
+    def test_master_table_reader_rejects_unapproved_table_name(self) -> None:
+        source = MariaDBSource(SimpleNamespace())
+        with self.assertRaisesRegex(SourceError, "not allowed"):
+            source.fetch_master_table("patient")
 
 
 class MariaDBBatchTests(unittest.TestCase):
@@ -322,6 +347,68 @@ class AgentFlowTests(unittest.TestCase):
             self.assertEqual(["vn-1", "vn-2"], requested)
             marked_ids = agent.store.mark_events.call_args_list[-1].args[0]
             self.assertEqual(["e1", "e2"], marked_ids)
+
+    def test_master_sync_posts_only_changed_rows_in_bounded_batches(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            agent = self._agent(Path(directory), dry_run=False)
+            agent.config.master_sync_seconds = 3600
+            agent.config.master_post_batch_size = 2
+            agent.config.drugitems_post_url = "https://example.test/query/3"
+            agent.config.s_drugitems_post_url = "https://example.test/query/4"
+            agent._next_master_sync_at = 0.0
+            drug_rows = {
+                str(index): {"icode": str(index), "name": f"Drug {index}"}
+                for index in range(3)
+            }
+            supply_rows = {"9": {"icode": "9", "name": "Supply"}}
+            agent.source.fetch_master_table.side_effect = [
+                drug_rows,
+                supply_rows,
+            ]
+            agent.store.changed_master_rows.side_effect = [
+                [
+                    (key, payload, f"hash-{key}")
+                    for key, payload in drug_rows.items()
+                ],
+                [("9", supply_rows["9"], "hash-9")],
+            ]
+
+            self.assertTrue(agent.run_master_sync_if_due())
+            self.assertEqual(3, agent.query_provider.post_payload.call_count)
+            self.assertEqual(
+                call(
+                    [drug_rows["0"], drug_rows["1"]],
+                    url="https://example.test/query/3",
+                ),
+                agent.query_provider.post_payload.call_args_list[0],
+            )
+            self.assertEqual(
+                call([supply_rows["9"]], url="https://example.test/query/4"),
+                agent.query_provider.post_payload.call_args_list[2],
+            )
+            self.assertEqual(3, agent.store.acknowledge_master_rows.call_count)
+            self.assertFalse(agent.run_master_sync_if_due())
+
+    def test_master_sync_failure_is_retained_without_raising_into_event_flow(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            agent = self._agent(Path(directory), dry_run=False)
+            agent.config.master_sync_seconds = 3600
+            agent.config.master_post_batch_size = 50
+            agent.config.drugitems_post_url = "https://example.test/query/3"
+            agent.config.s_drugitems_post_url = "https://example.test/query/4"
+            agent._next_master_sync_at = 0.0
+            row_data = {"1": {"icode": "1"}}
+            agent.source.fetch_master_table.side_effect = [row_data, {}]
+            agent.store.changed_master_rows.side_effect = [
+                [("1", row_data["1"], "hash-1")],
+                [],
+            ]
+            agent.query_provider.post_payload.side_effect = RemoteApiError("down")
+
+            with self.assertLogs("hosxp-polling-agent", level="ERROR"):
+                self.assertTrue(agent.run_master_sync_if_due())
+
+            agent.store.acknowledge_master_rows.assert_not_called()
 
     def test_no_event_only_checks_hourly_sql_cache_and_does_not_query_db(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

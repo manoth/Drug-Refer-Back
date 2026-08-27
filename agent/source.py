@@ -246,6 +246,36 @@ class MariaDBSource:
         snapshot = {str(row["hos_guid"]): row for row in rows}
         return server_date, snapshot, health
 
+    def fetch_master_table(self, table: str) -> Dict[str, Dict[str, Any]]:
+        """Read one approved HOSxP catalogue table, keyed by its icode."""
+        if table not in {"drugitems", "s_drugitems"}:
+            raise SourceError(f"Master table is not allowed: {table}")
+
+        with self._connection() as connection:
+            cursor = connection.cursor()
+            try:
+                cursor.execute("START TRANSACTION READ ONLY")
+                cursor.execute(f"SELECT * FROM `{table}` ORDER BY `icode`")
+                rows = self._fetch_all(cursor)
+                connection.commit()
+            except Exception as exc:
+                raise SourceError(
+                    f"Unable to read HOSxP master table {table}: {exc}"
+                ) from exc
+            finally:
+                try:
+                    cursor.close()
+                except Exception:
+                    pass
+
+        result: Dict[str, Dict[str, Any]] = {}
+        for row in rows:
+            key = str(row.get("icode") or "").strip()
+            if not key:
+                raise SourceError(f"HOSxP master table {table} contains an empty icode")
+            result[key] = row
+        return result
+
     def run_query_for_vns(
         self, vns: Iterable[str], query: Optional[str] = None
     ) -> Dict[str, List[Dict[str, Any]]]:

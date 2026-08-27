@@ -24,10 +24,76 @@ class Agent:
         self.source = MariaDBSource(config)
         self.store = StateStore(config.state_file)
         self.query_provider = QueryProvider(config)
+        self._next_master_sync_at = 0.0
 
     def close(self) -> None:
         self.query_provider.close()
         self.store.close()
+
+    def run_master_sync_if_due(self, force: bool = False) -> bool:
+        """Incrementally upsert HOSxP drug catalogues on an hourly schedule."""
+        now = time.monotonic()
+        next_sync = getattr(self, "_next_master_sync_at", 0.0)
+        if not force and now < next_sync:
+            return False
+
+        interval = max(1, int(getattr(self.config, "master_sync_seconds", 3600)))
+        batch_size = max(
+            1,
+            int(getattr(self.config, "master_post_batch_size", 50)),
+        )
+        targets = (
+            ("drugitems", self.config.drugitems_post_url),
+            ("s_drugitems", self.config.s_drugitems_post_url),
+        )
+        failed = False
+
+        for table, post_url in targets:
+            try:
+                snapshot = self.source.fetch_master_table(table)
+                changed = self.store.changed_master_rows(table, snapshot)
+                if not changed:
+                    LOGGER.info(
+                        "Master sync unchanged: table=%s rows=%d",
+                        table,
+                        len(snapshot),
+                    )
+                    continue
+                if self.config.dry_run:
+                    LOGGER.info(
+                        "DRY RUN master sync: table=%s changed=%d; no API POST sent",
+                        table,
+                        len(changed),
+                    )
+                    continue
+
+                self.query_provider.begin_delivery_round()
+                for offset in range(0, len(changed), batch_size):
+                    batch = changed[offset : offset + batch_size]
+                    self.query_provider.post_payload(
+                        [payload for _, payload, _ in batch],
+                        url=post_url,
+                    )
+                    self.store.acknowledge_master_rows(table, batch)
+                LOGGER.info(
+                    "Master sync acknowledged: table=%s total=%d changed=%d",
+                    table,
+                    len(snapshot),
+                    len(changed),
+                )
+            except Exception as exc:
+                failed = True
+                LOGGER.error(
+                    "Master sync failed; acknowledged batches stay saved and "
+                    "remaining rows will retry: table=%s error=%s",
+                    table,
+                    exc,
+                    exc_info=True,
+                )
+
+        retry_seconds = min(60, interval) if failed else interval
+        self._next_master_sync_at = time.monotonic() + retry_seconds
+        return True
 
     def run_once(self) -> None:
         cycle_started = time.perf_counter()
@@ -394,6 +460,7 @@ def main() -> int:
             started = time.monotonic()
             try:
                 agent.run_once()
+                agent.run_master_sync_if_due()
             except SlaveUnhealthy as exc:
                 LOGGER.warning("Polling skipped: %s", exc)
             except Exception:

@@ -78,6 +78,15 @@ class StateStore:
 
             CREATE INDEX IF NOT EXISTS ix_event_outbox_vn
                 ON event_outbox(vn, detected_at);
+
+            CREATE TABLE IF NOT EXISTS master_row_state (
+                table_name TEXT NOT NULL,
+                row_key TEXT NOT NULL,
+                row_hash TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                synced_at TEXT NOT NULL,
+                PRIMARY KEY (table_name, row_key)
+            );
             """
         )
         self.connection.commit()
@@ -166,6 +175,50 @@ class StateStore:
             self.connection.executemany(
                 "DELETE FROM event_outbox WHERE event_id = ?",
                 [(event_id,) for event_id in event_ids],
+            )
+
+    def changed_master_rows(
+        self,
+        table: str,
+        snapshot: Dict[str, Dict[str, Any]],
+    ) -> List[Tuple[str, Dict[str, Any], str]]:
+        """Return rows whose current hash has not yet been acknowledged."""
+        rows = self.connection.execute(
+            "SELECT row_key, row_hash FROM master_row_state WHERE table_name = ?",
+            (table,),
+        ).fetchall()
+        synced = {row["row_key"]: row["row_hash"] for row in rows}
+        changed: List[Tuple[str, Dict[str, Any], str]] = []
+        for row_key, payload in snapshot.items():
+            digest = row_hash(payload)
+            if synced.get(row_key) != digest:
+                changed.append((row_key, payload, digest))
+        return changed
+
+    def acknowledge_master_rows(
+        self,
+        table: str,
+        rows: List[Tuple[str, Dict[str, Any], str]],
+    ) -> None:
+        """Persist hashes only after the API has acknowledged the batch."""
+        if not rows:
+            return
+        now = datetime.now(timezone.utc).isoformat()
+        with self.connection:
+            self.connection.executemany(
+                """
+                INSERT INTO master_row_state(
+                    table_name, row_key, row_hash, payload_json, synced_at
+                ) VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(table_name, row_key) DO UPDATE SET
+                    row_hash = excluded.row_hash,
+                    payload_json = excluded.payload_json,
+                    synced_at = excluded.synced_at
+                """,
+                [
+                    (table, row_key, digest, canonical_json(payload), now)
+                    for row_key, payload, digest in rows
+                ],
             )
 
     @staticmethod

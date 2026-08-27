@@ -58,6 +58,7 @@ jobs:
           path: |
             ${{ env.RELEASE_ASSET }}
             SHA256SUMS.txt
+            api-migrations/v1.6.0-master-drug-sync.sql
           if-no-files-found: error
 
       - name: Create GitHub Release
@@ -69,6 +70,7 @@ jobs:
           gh release create "${{ github.ref_name }}" `
             "$env:RELEASE_ASSET" `
             "SHA256SUMS.txt" `
+            "api-migrations/v1.6.0-master-drug-sync.sql" `
             --repo "${{ github.repository }}" `
             --title "Drug Refer Agent ${{ github.ref_name }}" `
             --notes-file RELEASE_NOTES.md `

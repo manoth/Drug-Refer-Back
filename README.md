@@ -1,6 +1,6 @@
 # HOSxP Drug Refer Agent
 
-Current version: **1.5.0**
+Current version: **1.6.0**
 
 Secure local web service สำหรับตรวจการเปลี่ยนแปลงของ `opitemrece` บน MariaDB
 Slave, ดาวน์โหลด SQL จาก Drug Refer API และส่ง JSON ไปยัง API พร้อม local retry
@@ -52,6 +52,7 @@ Events for the same VN are coalesced until the VN is quiet for 3 seconds
 Expand the VN predicate to a bound IN (...) batch -> run read-only detail query
 No detail rows -> close the VN without delivery login or POST
 Rows found -> fresh Login -> POST JSON array -> clear only acknowledged VNs
+Startup and every hour: hash drugitems + s_drugitems -> POST only new/changed rows
 JSON preview -> Logs page + agent/logs/post-preview.jsonl
 ```
 
@@ -111,6 +112,8 @@ DB_QUERY_RETRIES=2
 DB_READ_TIMEOUT_SECONDS=120
 API_POST_VN_BATCH_SIZE=25
 QUERY_REFRESH_SECONDS=3600
+MASTER_SYNC_SECONDS=3600
+MASTER_POST_BATCH_SIZE=50
 LOOKBACK_DAYS=1
 DELETE_CONFIRM_ROUNDS=3
 REQUIRE_SLAVE_HEALTH=false
@@ -195,6 +198,18 @@ Error และ traceback จะถูกเก็บแยกใน `error.log`
 หากมีรุ่นใหม่จะแสดง SweetAlert ให้ผู้ดูแลยืนยัน เมื่อยืนยัน Agent จะดาวน์โหลด EXE ไปยัง
 `%LOCALAPPDATA%\\DrugReferAgent\\updates`, ตรวจ SHA-256 จาก GitHub Release แล้วเปิด
 ตัวใหม่ให้หยุดรุ่นเก่าและรับช่วงทำงานโดยอัตโนมัติ
+
+รุ่น v1.6.0 อ่านตาราง `drugitems` และ `s_drugitems` แบบ read-only ตอนเริ่ม Agent
+และทุก `MASTER_SYNC_SECONDS` (ค่าเริ่มต้น 1 ชั่วโมง) รอบแรกจะส่งข้อมูลทั้งหมดเพื่อสร้าง
+baseline หลังจาก API ตอบรับแล้ว Agent จะเก็บ SHA-256 ของแต่ละ `icode` ใน local SQLite
+รอบต่อไปจึงส่งเฉพาะรายการใหม่หรือรายการที่ข้อมูลเปลี่ยน แบ่งชุดละ
+`MASTER_POST_BATCH_SIZE` แถว หากบาง batch ล้มเหลว เฉพาะส่วนที่ยังไม่ถูกตอบรับจะถูกลองใหม่
+โดยไม่หยุด flow `sys_drug_refer` เดิม การลบรายการต้นทางจะไม่ลบข้อมูลฝั่ง API
+
+ก่อนใช้ master sync ให้รัน migration
+`api-migrations/v1.6.0-master-drug-sync.sql` ที่ฐาน `db_drug_refer` หนึ่งครั้ง
+ไฟล์นี้สร้าง `s_drugitems` และลงทะเบียน API query IDs 3/4 ส่วนการ upsert `drugitems`
+จะไม่แก้ค่า `refer_back` ที่ผู้ดูแลกำหนดไว้ใน API
 
 ## Tests
 

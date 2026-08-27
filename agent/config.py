@@ -54,6 +54,8 @@ class Config:
     remote_query_cache: Path
     query_source: str
     query_refresh_seconds: int
+    master_sync_seconds: int
+    master_post_batch_size: int
     api_signin_url: str
     api_query_url: str
     api_username: str
@@ -62,6 +64,8 @@ class Config:
     api_token_scheme: str
     api_timeout_seconds: float
     post_url: str
+    drugitems_post_url: str
+    s_drugitems_post_url: str
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -124,6 +128,10 @@ class Config:
             ),
             query_source=query_source,
             query_refresh_seconds=int(os.getenv("QUERY_REFRESH_SECONDS", "3600")),
+            master_sync_seconds=int(os.getenv("MASTER_SYNC_SECONDS", "3600")),
+            master_post_batch_size=int(
+                os.getenv("MASTER_POST_BATCH_SIZE", "50")
+            ),
             api_signin_url=os.getenv(
                 "API_SIGNIN_URL",
                 f"{api_root}/signIn",
@@ -140,6 +148,14 @@ class Config:
             post_url=os.getenv(
                 "POST_URL",
                 api_query_url,
+            ),
+            drugitems_post_url=os.getenv(
+                "DRUGITEMS_POST_URL",
+                f"{api_root}/syncData/query/3",
+            ),
+            s_drugitems_post_url=os.getenv(
+                "S_DRUGITEMS_POST_URL",
+                f"{api_root}/syncData/query/4",
             ),
         )
 
@@ -167,6 +183,10 @@ class Config:
             raise ValueError("QUERY_SOURCE must be remote or file")
         if config.query_refresh_seconds < 1:
             raise ValueError("QUERY_REFRESH_SECONDS must be >= 1")
+        if config.master_sync_seconds < 1:
+            raise ValueError("MASTER_SYNC_SECONDS must be >= 1")
+        if config.master_post_batch_size < 1:
+            raise ValueError("MASTER_POST_BATCH_SIZE must be >= 1")
         if config.api_timeout_seconds <= 0:
             raise ValueError("API_TIMEOUT_SECONDS must be > 0")
         return config

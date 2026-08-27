@@ -156,7 +156,11 @@ class QueryProvider:
             return effective_query
         raise RemoteApiError("GET remote SQL was not authorized after JWT refresh")
 
-    def post_payload(self, payload: List[Dict[str, Any]]) -> None:
+    def post_payload(
+        self,
+        payload: List[Dict[str, Any]],
+        url: Optional[str] = None,
+    ) -> None:
         """POST a raw JSON row array and require the API to acknowledge it."""
         if not isinstance(payload, list) or not payload:
             raise RemoteApiError("POST data requires a non-empty JSON array")
@@ -166,7 +170,7 @@ class QueryProvider:
         for attempt in range(2):
             try:
                 response = self.client.post(
-                    self.config.post_url,
+                    url or self.config.post_url,
                     headers=self._auth_headers(),
                     json=payload,
                 )

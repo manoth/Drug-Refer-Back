@@ -125,6 +125,8 @@ def build_agent_config(
         remote_query_cache=web.remote_query_cache,
         query_source=query_source,
         query_refresh_seconds=web.query_refresh_seconds,
+        master_sync_seconds=web.master_sync_seconds,
+        master_post_batch_size=web.master_post_batch_size,
         api_signin_url=f"{api_root}/signIn",
         api_query_url=f"{api_root}/syncData/query/{api_query_id}",
         api_username=api["api_username"],
@@ -135,6 +137,8 @@ def build_agent_config(
         # POST uses the same configured query endpoint after an acknowledged
         # login/GET SQL cycle. The local outbox is cleared only on ok=true.
         post_url=f"{api_root}/syncData/query/{api_query_id}",
+        drugitems_post_url=f"{api_root}/syncData/query/3",
+        s_drugitems_post_url=f"{api_root}/syncData/query/4",
     )
 
 
@@ -187,6 +191,7 @@ class PollingService:
             while not self._stop.is_set():
                 try:
                     agent.run_once()
+                    agent.run_master_sync_if_due()
                     self._last_error = None
                 except Exception as exc:
                     self._last_error = str(exc)

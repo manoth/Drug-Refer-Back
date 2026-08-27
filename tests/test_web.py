@@ -273,7 +273,7 @@ class WebWizardTests(unittest.TestCase):
 
     def test_initial_login_forces_password_change(self) -> None:
         response = self.client.get("/login")
-        self.assertIn("v1.5.0", response.text)
+        self.assertIn("v1.6.0", response.text)
         token = csrf_from(response.text)
         response = self.client.post(
             "/login",
@@ -311,7 +311,7 @@ class WebWizardTests(unittest.TestCase):
 
         self.assertEqual(200, response.status_code)
         self.assertTrue(response.json()["ok"])
-        self.assertEqual("1.5.0", response.json()["version"])
+        self.assertEqual("1.6.0", response.json()["version"])
 
     def test_authenticated_user_can_download_diagnostic_zip(self) -> None:
         self.login_and_change_password()

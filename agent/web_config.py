@@ -87,6 +87,8 @@ class WebConfig:
     require_slave_health: bool
     dry_run: bool
     query_refresh_seconds: int
+    master_sync_seconds: int = 3600
+    master_post_batch_size: int = 50
 
     @classmethod
     def from_env(cls) -> "WebConfig":
@@ -161,6 +163,10 @@ class WebConfig:
             require_slave_health=_bool("REQUIRE_SLAVE_HEALTH", False),
             dry_run=_bool("DRY_RUN", False),
             query_refresh_seconds=int(os.getenv("QUERY_REFRESH_SECONDS", "3600")),
+            master_sync_seconds=int(os.getenv("MASTER_SYNC_SECONDS", "3600")),
+            master_post_batch_size=int(
+                os.getenv("MASTER_POST_BATCH_SIZE", "50")
+            ),
         )
 
     def with_server(self, host: str, port: int, auto_open: bool) -> "WebConfig":
